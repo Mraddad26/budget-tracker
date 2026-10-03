@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="دفتر المصروف">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#EDEAE2">
+<title>دفتر المصروف</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --paper:#EDEAE2;
+  --paper-line:#DCD7C9;
+  --card:#FBFAF6;
+  --ink:#1F2A24;
+  --ink-soft:#5B6459;
+  --green:#2F6F4E;
+  --green-deep:#1E4E35;
+  --green-soft:#E4EEE7;
+  --rust:#B5442E;
+  --rust-soft:#F6E4DF;
+  --gold:#8A6A1E;
+  --gold-soft:#F4E7CE;
+  --border:#CFC9B8;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 28px),
+    var(--paper);
+  font-family:'IBM Plex Sans Arabic', sans-serif;
+  color:var(--ink);
+  padding:28px 16px 60px;
+}
+.wrap{ max-width:480px; margin:0 auto; }
+.masthead{ text-align:center; margin-bottom:22px; padding-bottom:16px; border-bottom:2px solid var(--ink); }
+.masthead h1{ font-size:26px; font-weight:700; margin:0 0 4px; }
+.masthead p{ margin:0; font-size:13.5px; color:var(--ink-soft); }
+.masthead .ver{ margin-top:5px; font-size:10.5px; color:var(--border); }
+
+.card{ background:var(--card); border:1px solid var(--border); border-radius:6px; padding:18px; margin-bottom:14px; }
+.card h2{ font-size:14px; font-weight:600; margin:0 0 12px; color:var(--ink-soft); }
+.card h2 small{ font-weight:400; }
+
+.banner{ font-size:13px; padding:10px 12px; border-radius:5px; margin-bottom:14px; text-align:center; }
+.banner.good{ background:var(--green-soft); border:1px solid #9FC5AE; color:var(--green-deep); }
+.banner.bad{ background:var(--rust-soft); border:1px solid #DDA495; color:var(--rust); }
+.banner.info{ background:var(--gold-soft); border:1px solid #D8B979; color:var(--gold); }
+
+.seg{ display:flex; border:1px solid var(--ink); border-radius:5px; overflow:hidden; margin-bottom:12px; }
+.seg button{ flex:1; padding:9px 0; border:none; background:transparent; font-family:inherit; font-size:14px; font-weight:500; color:var(--ink); cursor:pointer; border-left:1px solid var(--ink); }
+.seg button:last-child{ border-left:none; }
+.seg button.active{ background:var(--ink); color:var(--paper); }
+
+.field{ margin-bottom:12px; }
+.field label{ display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:5px; }
+input[type=number], input[type=text], input[type=date], input[type=password], input[type=email]{
+  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:5px; background:#fff;
+  font-family:'IBM Plex Mono', monospace; font-size:15px; direction:ltr; text-align:right; color:var(--ink);
+}
+input[type=text]{ font-family:'IBM Plex Sans Arabic', sans-serif; direction:rtl; text-align:right; }
+
+button.primary{ width:100%; padding:11px 0; border:none; border-radius:5px; background:var(--green); color:#fff; font-family:inherit; font-size:14.5px; font-weight:600; cursor:pointer; }
+button.primary:active{ background:var(--green-deep); }
+button.secondary{ width:100%; padding:10px 0; border:1px solid var(--ink); border-radius:5px; background:transparent; color:var(--ink); font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; margin-top:8px; }
+
+.hero{ text-align:center; padding:6px 0 4px; }
+.hero .label{ font-size:13px; color:var(--ink-soft); margin-bottom:2px; }
+.hero .amount{ font-family:'IBM Plex Mono', monospace; font-size:44px; font-weight:600; direction:ltr; display:inline-block; }
+.hero .amount.over{ color:var(--rust); }
+.hero .unit{ font-size:16px; color:var(--ink-soft); margin-inline-start:6px; }
+
+.stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+.stat{ border-top:1px solid var(--border); padding-top:8px; }
+.stat .k{ font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
+.stat .v{ font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; direction:ltr; text-align:right; }
+.stat .v.neg{ color:var(--rust); }
+
+.pace{ margin-top:16px; }
+.pace .row{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
+.pace .bar{ height:7px; border-radius:4px; background:var(--paper-line); overflow:hidden; margin-bottom:8px; }
+.pace .bar > div{ height:100%; border-radius:4px; }
+.pace .bar.time > div{ background:var(--ink-soft); }
+.pace .bar.spent > div{ background:var(--green); }
+.pace .bar.spent.over > div{ background:var(--rust); }
+
+table.weeks{ width:100%; border-collapse:collapse; font-size:13px; }
+table.weeks th{ text-align:right; font-size:11px; color:var(--ink-soft); font-weight:500; padding:4px 4px; border-bottom:1px solid var(--border); }
+table.weeks td{ padding:6px 4px; border-bottom:1px solid var(--paper-line); font-family:'IBM Plex Mono', monospace; direction:ltr; text-align:right; }
+table.weeks td.name{ font-family:'IBM Plex Sans Arabic', sans-serif; direction:rtl; text-align:right; }
+table.weeks td.neg{ color:var(--rust); }
+table.weeks tr.current td{ font-weight:700; }
+
+.addrow{ display:flex; gap:8px; }
+.addrow input[type=number]{ flex:1; }
+.addrow button.primary{ width:auto; padding:0 16px; }
+
+.expense{ display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--paper-line); font-size:14px; }
+.expense:last-child{ border-bottom:none; }
+.expense .meta{ color:var(--ink-soft); font-size:12px; }
+.expense .amt{ font-family:'IBM Plex Mono', monospace; font-weight:600; direction:ltr; }
+.expense .del{ background:none; border:none; color:var(--ink-soft); font-size:16px; cursor:pointer; padding:2px 6px; }
+.empty{ color:var(--ink-soft); font-size:13.5px; text-align:center; padding:10px 0; }
+
+.linklike{ display:block; text-align:center; margin-top:6px; font-size:12.5px; color:var(--ink-soft); text-decoration:underline; cursor:pointer; background:none; border:none; font-family:inherit; }
+
+canvas{ width:100%; height:140px; display:block; }
+.legend{ display:flex; gap:14px; justify-content:center; font-size:11.5px; color:var(--ink-soft); margin-top:6px; }
+.legend span{ display:inline-flex; align-items:center; gap:5px; }
+.legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+.loading{ text-align:center; color:var(--ink-soft); padding:40px 0; font-size:14px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="loading">جاري التحميل...</div></div>
+
+<script>
+const STORAGE_KEY = 'budget-state-v2';
+const APP_VERSION = 'v3.0 — 2026/09/05';
+const SUPABASE_URL = 'https://cjczauxbziygxjmhptag.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_oi_tSJ30GHNTJaUJxEUQkA_dEt1MEf2';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let authMode = 'signin'; // signin | signup
+let state = null;
+let ui = { mode: 'dashboard' }; // dashboard | newPeriod | editBudget
+let showDayTotalForm = false;
+let showWeeks = false;
+let showAddExpense = false;
+let showExpenseList = false;
+let showOtherAdd = false;
+let showOtherList = false;
+
+// بياناتك مخزنة على حسابك بقاعدة بيانات Supabase، محمية بحيث ولا حدا غيرك يوصلها.
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function dateFromStr(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function toStr(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function firstOfMonthStr(dateStr){ const d=dateFromStr(dateStr); return toStr(new Date(d.getFullYear(), d.getMonth(), 1)); }
+function daysInMonthOf(year, month){ return new Date(year, month+1, 0).getDate(); }
+function monthlyPeriodStartContaining(dateStr, salaryDay){
+  const d = dateFromStr(dateStr);
+  let year=d.getFullYear(), month=d.getMonth();
+  let day = Math.min(salaryDay, daysInMonthOf(year,month));
+  let candidate = new Date(year,month,day);
+  if(candidate > d){
+    month -= 1; if(month<0){ month=11; year-=1; }
+    day = Math.min(salaryDay, daysInMonthOf(year,month));
+    candidate = new Date(year,month,day);
+  }
+  return toStr(candidate);
+}
+function nextSalaryDateAfter(periodStartStr, salaryDay){
+  const d = dateFromStr(periodStartStr);
+  let year=d.getFullYear(), month=d.getMonth()+1;
+  if(month>11){ month=0; year+=1; }
+  const day = Math.min(salaryDay, daysInMonthOf(year,month));
+  return toStr(new Date(year,month,day));
+}
+function daysBetweenInclusive(a,b){ return Math.round((dateFromStr(b)-dateFromStr(a))/86400000)+1; }
+function fmt(n){ return (Math.round((n||0)*100)/100).toFixed(2); }
+
+function getPeriodEnd(startStr, type, salaryDay){
+  if(type==='weekly'){
+    const start = dateFromStr(startStr);
+    const end = new Date(start);
+    end.setDate(end.getDate()+6);
+    return toStr(end);
+  }
+  const next = nextSalaryDateAfter(startStr, salaryDay||1);
+  return toStr(new Date(dateFromStr(next).getTime() - 86400000));
+}
+function buildWeeks(startStr, endStr){
+  // أسابيع مربوطة بيوم ثابت: كل أسبوع يبلش السبت وينتهي الجمعة (متل ما يلي بالميزانية).
+  // أول قطعة بالفترة ممكن تكون أقصر من 7 أيام لو الفترة ما بلشت يوم سبت بالظبط.
+  let weeks=[]; let cur=dateFromStr(startStr); const end=dateFromStr(endStr);
+  while(cur<=end){
+    let ws=new Date(cur);
+    const daysUntilSat = (6 - cur.getDay() + 7) % 7; // 0 لو cur نفسه سبت
+    let we=new Date(cur); we.setDate(we.getDate() + (daysUntilSat===0 ? 6 : daysUntilSat-1));
+    if(we>end) we=new Date(end);
+    weeks.push({start:toStr(ws), end:toStr(we)});
+    cur = new Date(we); cur.setDate(cur.getDate()+1);
+  }
+  return weeks;
+}
+function dateLabel(dateStr){
+  const today = todayStr();
+  const yest = toStr(new Date(dateFromStr(today).getTime() - 86400000));
+  if(dateStr === today) return 'اليوم';
+  if(dateStr === yest) return 'أمس';
+  return dateStr;
+}
+function sumExpensesBetween(expenses, start, end){
+  return expenses.filter(e=>e.date>=start && e.date<=end).reduce((s,e)=>s+e.amount,0);
+}
+function sumExpensesBefore(expenses, date){
+  return expenses.filter(e=>e.date<date).reduce((s,e)=>s+e.amount,0);
+}
+
+async function loadState(){
+  try{
+    const { data, error } = await sb.from('budget_state').select('data').eq('user_id', currentUser.id).maybeSingle();
+    if(error) throw error;
+    state = (data && data.data && Object.keys(data.data).length) ? data.data : null;
+    if(state && state.savings === undefined) state.savings = 0;
+    if(state && !state.history) state.history = [];
+    if(state && !state.trackingStart) state.trackingStart = state.periodStart;
+    if(state && !state.salaryDay) state.salaryDay = 1;
+    if(state && state.generalBudgetAmount === undefined) state.generalBudgetAmount = 0;
+    if(state && !state.otherExpenses) state.otherExpenses = [];
+    if(state && state.periodType==='monthly' && state.salaryDay!==1){
+      state.salaryDay = 1;
+      state.periodStart = monthlyPeriodStartContaining(todayStr(), 1);
+      state.trackingStart = todayStr();
+      saveState();
+    }
+  }catch(e){ console.error('تعذر تحميل البيانات', e); state = null; }
+  render();
+}
+async function saveState(){
+  try{
+    const { error } = await sb.from('budget_state').upsert({ user_id: currentUser.id, data: state, updated_at: new Date().toISOString() });
+    if(error) throw error;
+  }catch(e){ console.error('تعذر الحفظ', e); alert('تعذر الحفظ — تأكد من الاتصال بالإنترنت'); }
+}
+
+function exportBackup(){
+  const dataStr = JSON.stringify(state, null, 2);
+  const blob = new Blob([dataStr], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'budget-backup-' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importBackup(file){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed.periodType || !parsed.expenses){ alert('ملف غير صالح'); return; }
+      state = parsed;
+      if(state.savings === undefined) state.savings = 0;
+      if(!state.history) state.history = [];
+      if(state.generalBudgetAmount === undefined) state.generalBudgetAmount = 0;
+      if(!state.otherExpenses) state.otherExpenses = [];
+      saveState(); render();
+      alert('تم استرجاع النسخة الاحتياطية بنجاح');
+    }catch(err){ alert('ما قدرت أقرأ الملف'); }
+  };
+  reader.readAsText(file);
+}
+
+function setupBudget(type, amount, salaryDay, generalAmount){
+  const sDay = salaryDay || 1;
+  const start = type==='monthly' ? monthlyPeriodStartContaining(todayStr(), sDay) : todayStr();
+  state = { periodType:type, budgetAmount:amount, periodStart:start, salaryDay:sDay, trackingStart:todayStr(), expenses:[], savings:0, history:[], generalBudgetAmount:(generalAmount||0), otherExpenses:[] };
+  saveState(); render();
+}
+function addExpense(amount, note, date){
+  state.expenses.push({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), date:(date||todayStr()), amount, note:note||'' });
+  state.expenses.sort((a,b)=> a.date.localeCompare(b.date) || (a.id.localeCompare(b.id)));
+  saveState(); render();
+}
+function addOtherExpense(amount, note, date){
+  state.otherExpenses.push({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), date:(date||todayStr()), amount, note:note||'' });
+  state.otherExpenses.sort((a,b)=> a.date.localeCompare(b.date) || (a.id.localeCompare(b.id)));
+  saveState(); render();
+}
+function deleteOtherExpense(id){
+  state.otherExpenses = state.otherExpenses.filter(e=>e.id!==id);
+  saveState(); render();
+}
+function logDayTotal(date, total){
+  const already = sumExpensesBetween(state.expenses, date, date);
+  const diff = total - already;
+  if(Math.abs(diff) < 0.005){
+    alert('مجموع ' + dateLabel(date) + ' مطابق أصلاً (' + fmt(already) + ' د.أ) — ما في داعي لأي تعديل');
+    return;
+  }
+  addExpense(diff, 'تسوية لمطابقة مجموع اليوم', date);
+  alert('تمام، ضفت تسوية قدرها ' + fmt(diff) + ' د.أ، فصار مجموع ' + dateLabel(date) + ' = ' + fmt(total) + ' د.أ');
+}
+function deleteExpense(id){
+  state.expenses = state.expenses.filter(e=>e.id!==id);
+  saveState(); render();
+}
+
+function computeCurrentPeriodInfo(){
+  const today = todayStr();
+  const periodEnd = getPeriodEnd(state.periodStart, state.periodType, state.salaryDay);
+  const allocStart = state.trackingStart || state.periodStart; // من هون بتحسب الميزانية فعلياً، مو من أول الشهر
+  const daysInPeriod = daysBetweenInclusive(allocStart, periodEnd);
+  let daysRemainingPeriod = daysBetweenInclusive(today, periodEnd);
+  const periodOver = daysRemainingPeriod <= 0;
+  if(daysRemainingPeriod < 0) daysRemainingPeriod = 0;
+  const totalSpent = state.expenses.reduce((s,e)=>s+e.amount,0);
+  const remainingBudget = state.budgetAmount - totalSpent;
+  const spentToday = sumExpensesBetween(state.expenses, today, today);
+
+  let weeks=null, currentWeekIndex=-1, weeksTable=[], dailyAllowance=null, currentWeekBudget=null, spentThisWeek=null;
+
+  if(state.periodType==='monthly'){
+    weeks = buildWeeks(allocStart, periodEnd);
+    currentWeekIndex = weeks.findIndex(w => today>=w.start && today<=w.end);
+    if(currentWeekIndex===-1) currentWeekIndex = periodOver ? weeks.length-1 : 0;
+    let spentBefore = 0; // مصروف حقيقي بالأسابيع يلي خلصت
+    for(let i=0;i<weeks.length;i++){
+      const w = weeks[i];
+      if(i>currentWeekIndex){ weeksTable.push({...w, budget:null, spent:null, diff:null, pending:true}); continue; }
+      const remainingDaysTotal = daysBetweenInclusive(w.start, periodEnd);
+      const weekLength = daysBetweenInclusive(w.start, w.end);
+      const wBudget = (state.budgetAmount - spentBefore) * (weekLength / remainingDaysTotal);
+      const wSpentReal = sumExpensesBetween(state.expenses, w.start, w.end);
+      weeksTable.push({...w, budget:wBudget, spent:wSpentReal, diff:wBudget-wSpentReal, pending:false});
+      if(i===currentWeekIndex){
+        currentWeekBudget = wBudget;
+        spentThisWeek = sumExpensesBetween(state.expenses, w.start, today);
+      } else {
+        spentBefore += wSpentReal;
+      }
+    }
+    if(!periodOver){
+      const w = weeks[currentWeekIndex];
+      const daysRemainingInWeek = daysBetweenInclusive(today, w.end);
+      dailyAllowance = (currentWeekBudget - spentThisWeek) / Math.max(daysRemainingInWeek,1);
+    }
+  } else {
+    if(!periodOver){
+      const spentSoFar = sumExpensesBetween(state.expenses, allocStart, today);
+      dailyAllowance = (state.budgetAmount - spentSoFar) / Math.max(daysRemainingPeriod,1);
+    }
+  }
+
+  const elapsedDays = daysInPeriod - daysRemainingPeriod + (periodOver?0:1);
+  const pctTime = Math.min(100, Math.max(0, (elapsedDays/daysInPeriod)*100));
+  const pctSpent = state.budgetAmount>0 ? (totalSpent/state.budgetAmount)*100 : 0;
+
+  return { today, periodEnd, daysInPeriod, daysRemainingPeriod, periodOver, totalSpent, remainingBudget,
+           spentToday, weeksTable, currentWeekIndex, dailyAllowance, pctTime, pctSpent };
+}
+
+function startNewPeriodFlow(){ ui = { mode:'newPeriod' }; render(); }
+function cancelFlow(){ ui = { mode:'dashboard' }; render(); }
+
+function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount){
+  const info = computeCurrentPeriodInfo();
+  const diff = state.budgetAmount - info.totalSpent;
+  state.history.push({ type:state.periodType, amount:state.budgetAmount, start:state.periodStart, end:info.periodEnd, spent:info.totalSpent, diff });
+  state.savings += diff;
+  if(repayAmount && repayAmount>0){
+    state.savings += repayAmount;
+    newAmount = newAmount - repayAmount;
+  }
+  state.periodStart = state.periodType==='monthly' ? monthlyPeriodStartContaining(todayStr(), state.salaryDay||1) : todayStr();
+  state.trackingStart = todayStr();
+  state.expenses = [];
+  state.otherExpenses = [];
+  state.budgetAmount = newAmount;
+  state.generalBudgetAmount = newGeneralAmount!==undefined ? newGeneralAmount : (state.generalBudgetAmount||0);
+  ui = { mode:'dashboard' };
+  saveState(); render();
+}
+
+function drawHistoryChart(canvas, history){
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  const items = history.slice(-6);
+  if(items.length===0) return;
+  const max = Math.max(...items.map(i=>Math.max(i.amount,i.spent)), 1);
+  const padL=6, padR=6, padB=18, padT=6;
+  const groupW = (w - padL - padR) / items.length;
+  const barW = Math.min(18, groupW/3);
+  items.forEach((it, idx)=>{
+    const gx = padL + idx*groupW + groupW/2;
+    const budgetH = (it.amount/max) * (h-padB-padT);
+    const spentH = (it.spent/max) * (h-padB-padT);
+    ctx.fillStyle = '#CFC9B8';
+    ctx.fillRect(gx - barW - 2, h-padB-budgetH, barW, budgetH);
+    ctx.fillStyle = it.spent > it.amount ? '#B5442E' : '#2F6F4E';
+    ctx.fillRect(gx + 2, h-padB-spentH, barW, spentH);
+    ctx.fillStyle = '#5B6459';
+    ctx.font = '10px IBM Plex Sans Arabic, sans-serif';
+    ctx.textAlign = 'center';
+    const label = it.start.slice(5).replace('-','/');
+    ctx.fillText(label, gx, h-4);
+  });
+}
+
+function renderAuthScreen(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="masthead"><h1>دفتر المصروف</h1><p>سجل دخول أو أنشئ حساب عشان توصل لبياناتك من أي جهاز</p><div class="ver">${APP_VERSION}</div></div>
+    <div class="card">
+      <div class="seg">
+        <button id="authTabSignin" class="${authMode==='signin'?'active':''}">تسجيل دخول</button>
+        <button id="authTabSignup" class="${authMode==='signup'?'active':''}">إنشاء حساب</button>
+      </div>
+      <div class="field"><label>الإيميل</label><input type="email" id="authEmail" placeholder="you@example.com" style="direction:ltr;text-align:left;"></div>
+      <div class="field"><label>كلمة السر</label><input type="password" id="authPassword" placeholder="******" style="direction:ltr;text-align:left;font-family:'IBM Plex Mono',monospace;"></div>
+      <div id="authError" style="color:var(--rust);font-size:12.5px;margin-bottom:8px;"></div>
+      <button class="primary" id="authSubmitBtn">${authMode==='signin'?'دخول':'إنشاء الحساب'}</button>
+    </div>`;
+  document.getElementById('authTabSignin').onclick = () => { authMode='signin'; renderAuthScreen(); };
+  document.getElementById('authTabSignup').onclick = () => { authMode='signup'; renderAuthScreen(); };
+  document.getElementById('authSubmitBtn').onclick = async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const errEl = document.getElementById('authError');
+    errEl.textContent = '';
+    if(!email || !password){ errEl.textContent = 'لازم تعبي الإيميل وكلمة السر'; return; }
+    try{
+      if(authMode==='signup'){
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if(error) throw error;
+        if(data.session){ currentUser = data.user; loadState(); }
+        else { errEl.style.color = 'var(--green)'; errEl.textContent = 'تم إنشاء الحساب — شيك إيميلك لتأكيده، وبعدها سجل دخول.'; }
+      } else {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if(error) throw error;
+        currentUser = data.user; loadState();
+      }
+    }catch(e){ errEl.textContent = e.message || 'صار خطأ، جرب كمان مرة'; }
+  };
+}
+
+async function initAuth(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){ currentUser = session.user; loadState(); }
+  else { renderAuthScreen(); }
+}
+async function signOut(){
+  await sb.auth.signOut();
+  currentUser = null; state = null;
+  renderAuthScreen();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(!currentUser){ renderAuthScreen(); return; }
+
+  if(!state){
+    app.innerHTML = `
+      <div class="masthead"><h1>دفتر المصروف</h1><p>حدد ميزانيتك، وهو بيحسب لك المسموح تصرفه كل يوم</p><div class="ver">${APP_VERSION}</div></div>
+      <div class="card">
+        <h2>حدد الميزانية</h2>
+        <div class="seg"><button id="segWeekly" class="active">أسبوعي</button><button id="segMonthly">شهري</button></div>
+        <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="setupAmount" placeholder="مثلاً 300" min="0" step="0.01"></div>
+        <button class="primary" id="setupBtn">حفظ</button>
+      </div>
+      <div class="card">
+        <h2>ميزانية عامة (اختياري)</h2>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">لمصاريف ثانية (فواتير، التزامات...) بتتخصم من هون بس، وما بتأثر على "المسموح تصرفه اليوم" الشخصي.</div>
+        <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="setupGeneralAmount" placeholder="مثلاً 100، أو اتركه فاضي" min="0" step="0.01"></div>
+      </div>
+      <button class="linklike" id="importBtn0">عندي نسخة احتياطية، بدي أسترجعها</button>
+      <input type="file" id="importFile0" accept="application/json" style="display:none;">`;
+    document.getElementById('importBtn0').onclick = ()=> document.getElementById('importFile0').click();
+    document.getElementById('importFile0').onchange = (e)=>{ if(e.target.files[0]) importBackup(e.target.files[0]); };
+    let type='weekly';
+    document.getElementById('segWeekly').onclick=()=>{type='weekly';document.getElementById('segWeekly').classList.add('active');document.getElementById('segMonthly').classList.remove('active');};
+    document.getElementById('segMonthly').onclick=()=>{type='monthly';document.getElementById('segMonthly').classList.add('active');document.getElementById('segWeekly').classList.remove('active');};
+    document.getElementById('setupBtn').onclick=()=>{
+      const val=parseFloat(document.getElementById('setupAmount').value);
+      if(!val||val<=0){alert('لازم تدخل مبلغ صحيح');return;}
+      const genVal = parseFloat(document.getElementById('setupGeneralAmount').value) || 0;
+      setupBudget(type,val,1,genVal);
+    };
+    return;
+  }
+
+  const info = computeCurrentPeriodInfo();
+  const typeLabel = state.periodType==='weekly' ? 'أسبوعية' : 'شهرية';
+
+  // --- newPeriod flow screen ---
+  if(ui.mode==='newPeriod'){
+    const diff = state.budgetAmount - info.totalSpent;
+    const projectedSavings = state.savings + diff;
+    app.innerHTML = `
+      <div class="masthead"><h1>تسوية الفترة</h1><p>قبل ما نبلش فترة جديدة</p></div>
+      <div class="card">
+        <h2>ملخص الفترة الحالية</h2>
+        <div class="stats">
+          <div class="stat"><div class="k">الميزانية</div><div class="v">${fmt(state.budgetAmount)}</div></div>
+          <div class="stat"><div class="k">المصروف</div><div class="v">${fmt(info.totalSpent)}</div></div>
+          <div class="stat"><div class="k">${diff>=0?'فائض':'عجز'}</div><div class="v ${diff<0?'neg':''}">${fmt(Math.abs(diff))}</div></div>
+          <div class="stat"><div class="k">السيفنج بعد التسوية</div><div class="v ${projectedSavings<0?'neg':''}">${fmt(projectedSavings)}</div></div>
+        </div>
+      </div>
+      ${projectedSavings<0 ? `
+      <div class="banner bad">عليك دين للسيفنج قدره ${fmt(Math.abs(projectedSavings))} د.أ. تقدر تسدد جزء منه من ميزانية الفترة الجديدة.</div>
+      ` : ''}
+      <div class="card">
+        <h2>الفترة الجديدة</h2>
+        <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="npAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
+        ${projectedSavings<0 ? `
+        <div class="field"><label>قديش بدك تسدد من هالفترة؟ (اختياري)</label><input type="number" id="npRepay" placeholder="0" min="0" step="0.01"></div>
+        ` : ''}
+        <div class="field"><label>الميزانية العامة (اختياري)</label><input type="number" id="npGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
+        <button class="primary" id="npConfirm">تأكيد وبدء الفترة</button>
+        <button class="secondary" id="npCancel">رجوع</button>
+      </div>`;
+    document.getElementById('npConfirm').onclick = () => {
+      const amt = parseFloat(document.getElementById('npAmount').value);
+      if(!amt || amt<=0){ alert('مبلغ غير صحيح'); return; }
+      const repayEl = document.getElementById('npRepay');
+      const repay = repayEl ? (parseFloat(repayEl.value)||0) : 0;
+      if(repay > amt){ alert('ما تقدر تسدد أكتر من مبلغ الميزانية'); return; }
+      const genAmt = parseFloat(document.getElementById('npGeneral').value) || 0;
+      confirmNewPeriod(amt, repay, genAmt);
+    };
+    document.getElementById('npCancel').onclick = cancelFlow;
+    return;
+  }
+
+  // --- editBudget flow ---
+  if(ui.mode==='editBudget'){
+    app.innerHTML = `
+      <div class="masthead"><h1>تعديل الميزانية</h1><p>لنفس الفترة الحالية، بدون تصفير المصاريف</p></div>
+      <div class="card">
+        <div class="seg"><button id="segW" class="${state.periodType==='weekly'?'active':''}">أسبوعي</button><button id="segM" class="${state.periodType==='monthly'?'active':''}">شهري</button></div>
+        <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="ebAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
+        <div class="field"><label>الميزانية العامة (اختياري)</label><input type="number" id="ebGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
+        <button class="primary" id="ebSave">حفظ</button>
+        <button class="secondary" id="ebCancel">رجوع</button>
+      </div>`;
+    let type = state.periodType;
+    document.getElementById('segW').onclick=()=>{type='weekly';document.getElementById('segW').classList.add('active');document.getElementById('segM').classList.remove('active');};
+    document.getElementById('segM').onclick=()=>{type='monthly';document.getElementById('segM').classList.add('active');document.getElementById('segW').classList.remove('active');};
+    document.getElementById('ebSave').onclick=()=>{
+      const amt=parseFloat(document.getElementById('ebAmount').value);
+      if(!amt||amt<=0){alert('مبلغ غير صحيح');return;}
+      state.salaryDay = 1;
+      if(type==='monthly' && state.periodType!=='monthly'){
+        state.periodStart = monthlyPeriodStartContaining(todayStr(), 1);
+        state.trackingStart = todayStr();
+      }
+      state.budgetAmount=amt; state.periodType=type;
+      state.generalBudgetAmount = parseFloat(document.getElementById('ebGeneral').value) || 0;
+      ui={mode:'dashboard'}; saveState(); render();
+    };
+    document.getElementById('ebCancel').onclick=()=>{ ui={mode:'dashboard'}; render(); };
+    return;
+  }
+
+  // --- dashboard ---
+  const leftToday = info.dailyAllowance!==null ? (info.dailyAllowance - info.spentToday) : null;
+
+  let savingsBanner = '';
+  if(state.savings > 0.001){
+    savingsBanner = `<div class="banner good">💰 السيفنج: ${fmt(state.savings)} د.أ</div>`;
+  } else if(state.savings < -0.001){
+    savingsBanner = `<div class="banner bad">⚠️ عليك دين للسيفنج: ${fmt(Math.abs(state.savings))} د.أ — بينخصم تلقائي من أي فائض جاي</div>`;
+  }
+
+  let heroHtml;
+  if(info.periodOver){
+    heroHtml = `<div class="banner info">انتهت الفترة الحالية. اضغط "بدء فترة جديدة" تحت.</div>
+      <div class="hero"><div class="label">إجمالي المصروف بهذه الفترة</div><div class="amount">${fmt(info.totalSpent)}<span class="unit">د.أ</span></div></div>`;
+  } else {
+    heroHtml = `
+      <div class="hero">
+        <div class="label">المسموح تصرفه اليوم</div>
+        <div class="amount ${leftToday<0?'over':''}">${fmt(leftToday)}<span class="unit">د.أ</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">صرفت اليوم</div><div class="v">${fmt(info.spentToday)}</div></div>
+        <div class="stat"><div class="k">متبقي من الميزانية</div><div class="v ${info.remainingBudget<0?'neg':''}">${fmt(info.remainingBudget)}</div></div>
+        <div class="stat"><div class="k">إجمالي المصروف</div><div class="v">${fmt(info.totalSpent)}</div></div>
+        <div class="stat"><div class="k">أيام متبقية</div><div class="v">${info.daysRemainingPeriod} / ${info.daysInPeriod}</div></div>
+      </div>
+      <div class="pace">
+        <div class="row"><span>الوقت يلي مضى</span><span>${Math.round(info.pctTime)}%</span></div>
+        <div class="bar time"><div style="width:${info.pctTime}%"></div></div>
+        <div class="row"><span>اللي صرفته من الميزانية</span><span>${Math.round(info.pctSpent)}%</span></div>
+        <div class="bar spent ${info.pctSpent>info.pctTime?'over':''}"><div style="width:${Math.min(100,info.pctSpent)}%"></div></div>
+      </div>`;
+  }
+
+  const otherSpent = (state.otherExpenses||[]).reduce((s,e)=>s+e.amount,0);
+  const generalRemaining = (state.generalBudgetAmount||0) - otherSpent;
+
+  let weeksTableHtml = '';
+  if(state.periodType==='monthly' && info.weeksTable.length){
+    weeksTableHtml = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;">الأسابيع بهالشهر</h2>
+          <button class="linklike" id="toggleWeeks" style="margin:0;width:auto;">${showWeeks?'إخفاء':'إظهار'}</button>
+        </div>
+        ${showWeeks ? `
+        <table class="weeks" style="margin-top:10px;">
+          <tr><th>الأسبوع</th><th>الميزانية</th><th>المصروف</th><th>الفرق</th></tr>
+          ${info.weeksTable.map((w,i)=> w.pending ? `
+            <tr><td class="name">${w.start.slice(5)} – ${w.end.slice(5)}</td><td>—</td><td>—</td><td>—</td></tr>
+          ` : `
+            <tr class="${i===info.currentWeekIndex?'current':''}">
+              <td class="name">${w.start.slice(5)} – ${w.end.slice(5)}${i===info.currentWeekIndex?' (الحالي)':''}</td>
+              <td>${fmt(w.budget)}</td><td>${fmt(w.spent)}</td>
+              <td class="${w.diff<0?'neg':''}">${w.diff>=0?'+':''}${fmt(w.diff)}</td>
+            </tr>
+          `).join('')}
+        </table>` : ''}
+      </div>`;
+  }
+
+  const expensesByDate = {};
+  state.expenses.forEach(e => { (expensesByDate[e.date] = expensesByDate[e.date] || []).push(e); });
+  const sortedDates = Object.keys(expensesByDate).sort().reverse();
+  const expensesHtml = sortedDates.length ? sortedDates.map(d => `
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:2px;">${dateLabel(d)} <span style="font-weight:400;">(${d})</span></div>
+      ${expensesByDate[d].slice().reverse().map(e=>`
+        <div class="expense">
+          <div>${e.note?e.note:'بدون ملاحظة'}</div>
+          <div style="display:flex;align-items:center;gap:8px;"><div class="amt">${fmt(e.amount)}</div><button class="del" data-id="${e.id}">✕</button></div>
+        </div>`).join('')}
+    </div>`).join('') : `<div class="empty">لسا ما سجلت مصاريف بهذه الفترة</div>`;
+  const otherByDate = {};
+  (state.otherExpenses||[]).forEach(e => { (otherByDate[e.date] = otherByDate[e.date] || []).push(e); });
+  const otherSortedDates = Object.keys(otherByDate).sort().reverse();
+  const otherExpensesHtml = otherSortedDates.length ? otherSortedDates.map(d => `
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:2px;">${dateLabel(d)} <span style="font-weight:400;">(${d})</span></div>
+      ${otherByDate[d].slice().reverse().map(e=>`
+        <div class="expense">
+          <div>${e.note?e.note:'بدون ملاحظة'}</div>
+          <div style="display:flex;align-items:center;gap:8px;"><div class="amt">${fmt(e.amount)}</div><button class="delOther" data-id="${e.id}">✕</button></div>
+        </div>`).join('')}
+    </div>`).join('') : `<div class="empty">لسا ما سجلت مصاريف أخرى</div>`;
+
+  let otherBudgetHtml = '';
+  if(state.generalBudgetAmount>0 || otherSpent>0){
+    otherBudgetHtml = `
+      <div class="card">
+        <h2>ميزانية المصاريف الأخرى <small>(ما بتأثر على المسموح اليومي)</small></h2>
+        <div class="stats">
+          <div class="stat"><div class="k">الميزانية</div><div class="v">${fmt(state.generalBudgetAmount||0)}</div></div>
+          <div class="stat"><div class="k">صرفت منها</div><div class="v">${fmt(otherSpent)}</div></div>
+          <div class="stat" style="grid-column:1/-1;"><div class="k">المتبقي</div><div class="v ${generalRemaining<0?'neg':''}">${fmt(generalRemaining)}</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
+          <h2 style="margin:0;">تسجيل مصروف آخر</h2>
+          <button class="linklike" id="toggleOtherAdd" style="margin:0;width:auto;">${showOtherAdd?'إخفاء':'إظهار'}</button>
+        </div>
+        ${showOtherAdd ? `
+        <div class="addrow" style="margin-top:10px;"><input type="number" id="otherAmount" placeholder="المبلغ" min="0" step="0.01"><button class="primary" id="otherAddBtn">تسجيل</button></div>
+        <div class="field" style="margin-top:8px;"><input type="text" id="otherNote" placeholder="ملاحظة (مثلاً: فاتورة كهرباء)"></div>
+        ` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
+          <h2 style="margin:0;">مصاريف أخرى مسجلة</h2>
+          <button class="linklike" id="toggleOtherList" style="margin:0;width:auto;">${showOtherList?'إخفاء':'إظهار'}</button>
+        </div>
+        ${showOtherList ? `<div style="margin-top:10px;">${otherExpensesHtml}</div>` : ''}
+      </div>`;
+  }
+
+  let historyHtml = '';
+  if(state.history.length){
+    historyHtml = `
+      <div class="card">
+        <h2>مقارنة الفترات السابقة</h2>
+        <canvas id="historyChart"></canvas>
+        <div class="legend"><span><i style="background:#CFC9B8"></i>الميزانية</span><span><i style="background:#2F6F4E"></i>المصروف (ضمن الحد)</span><span><i style="background:#B5442E"></i>المصروف (تجاوز)</span></div>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <div class="masthead"><h1>دفتر المصروف</h1><p>ميزانية ${typeLabel} — ${fmt(state.budgetAmount)} د.أ</p><div class="ver">${APP_VERSION}</div></div>
+    ${savingsBanner}
+    <div class="card">${heroHtml}</div>
+    ${weeksTableHtml}
+    ${!info.periodOver ? `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">تسجيل مصروف</h2>
+        <button class="linklike" id="toggleAddExpense" style="margin:0;width:auto;">${showAddExpense?'إخفاء':'إظهار'}</button>
+      </div>
+      ${showAddExpense ? `
+      <div class="addrow" style="margin-top:10px;"><input type="number" id="expAmount" placeholder="المبلغ" min="0" step="0.01"><button class="primary" id="expAddBtn">تسجيل</button></div>
+      <div class="field" style="margin-top:8px;"><input type="text" id="expNote" placeholder="ملاحظة (اختياري)"></div>
+      <div class="field">
+        <label>التاريخ</label>
+        <input type="date" id="expDate" value="${info.today}" min="${state.periodStart}" max="${info.periodEnd}">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
+        <h2 style="margin:0;font-size:13px;">أو سجل مجموع يوم كامل دفعة وحدة</h2>
+        <button class="linklike" id="toggleDayTotal" style="margin:0;width:auto;">${showDayTotalForm?'إخفاء':'إظهار'}</button>
+      </div>
+      ${showDayTotalForm ? `
+        <div style="font-size:12px;color:var(--ink-soft);margin:8px 0 12px;">لو عرفت قديش صرفت إجمالاً بيوم معين، حط المجموع هون. إذا كان في مصاريف مسجلة قبل هيك لنفس اليوم، بيحسب الفرق ويضيفه بس، بدون تكرار.</div>
+        <div class="field"><label>التاريخ</label><input type="date" id="dayTotalDate" value="${info.today}" min="${state.periodStart}" max="${info.periodEnd}"></div>
+        <div class="field"><label>مجموع المصروف لهذا اليوم (د.أ)</label><input type="number" id="dayTotalAmount" placeholder="مثلاً 25" min="0" step="0.01"></div>
+        <button class="primary" id="dayTotalBtn">احسب وسجل الفرق</button>
+      ` : ''}
+      ` : ''}
+    </div>` : ''}
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="margin:0;">مصاريف هذه الفترة</h2>
+        <button class="linklike" id="toggleExpenseList" style="margin:0;width:auto;">${showExpenseList?'إخفاء':'إظهار'}</button>
+      </div>
+      ${showExpenseList ? `<div style="margin-top:10px;">${expensesHtml}</div>` : ''}
+    </div>
+    ${historyHtml}
+    ${otherBudgetHtml}
+    <button class="linklike" id="resetBtn">بدء فترة جديدة</button>
+    <button class="linklike" id="editBudgetBtn">تعديل الميزانية الحالية</button>
+    <button class="linklike" id="exportBtn">تصدير نسخة احتياطية</button>
+    <button class="linklike" id="importBtn">استرجاع نسخة احتياطية</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none;">
+    <button class="linklike" id="signOutBtn">تسجيل خروج</button>
+  `;
+
+  const addBtn = document.getElementById('expAddBtn');
+  if(addBtn){
+    addBtn.onclick = () => {
+      const amt = parseFloat(document.getElementById('expAmount').value);
+      const note = document.getElementById('expNote').value.trim();
+      const date = document.getElementById('expDate').value || todayStr();
+      if(!amt||amt<=0){ alert('لازم تدخل مبلغ صحيح'); return; }
+      if(date < state.periodStart || date > info.periodEnd){ alert('التاريخ لازم يكون ضمن الفترة الحالية'); return; }
+      addExpense(amt, note, date);
+    };
+  }
+  document.querySelectorAll('.del').forEach(btn=>{ btn.onclick=()=>deleteExpense(btn.dataset.id); });
+  document.querySelectorAll('.delOther').forEach(btn=>{ btn.onclick=()=>deleteOtherExpense(btn.dataset.id); });
+
+  const otherAddBtn = document.getElementById('otherAddBtn');
+  if(otherAddBtn){
+    otherAddBtn.onclick = () => {
+      const amt = parseFloat(document.getElementById('otherAmount').value);
+      const note = document.getElementById('otherNote').value.trim();
+      if(!amt||amt<=0){ alert('لازم تدخل مبلغ صحيح'); return; }
+      addOtherExpense(amt, note, todayStr());
+    };
+  }
+
+  const toggleDT = document.getElementById('toggleDayTotal');
+  if(toggleDT){ toggleDT.onclick = () => { showDayTotalForm = !showDayTotalForm; render(); }; }
+  const toggleWeeksBtn = document.getElementById('toggleWeeks');
+  if(toggleWeeksBtn){ toggleWeeksBtn.onclick = () => { showWeeks = !showWeeks; render(); }; }
+  const toggleAddExpBtn = document.getElementById('toggleAddExpense');
+  if(toggleAddExpBtn){ toggleAddExpBtn.onclick = () => { showAddExpense = !showAddExpense; render(); }; }
+  const toggleExpListBtn = document.getElementById('toggleExpenseList');
+  if(toggleExpListBtn){ toggleExpListBtn.onclick = () => { showExpenseList = !showExpenseList; render(); }; }
+  const toggleOtherAddBtn = document.getElementById('toggleOtherAdd');
+  if(toggleOtherAddBtn){ toggleOtherAddBtn.onclick = () => { showOtherAdd = !showOtherAdd; render(); }; }
+  const toggleOtherListBtn = document.getElementById('toggleOtherList');
+  if(toggleOtherListBtn){ toggleOtherListBtn.onclick = () => { showOtherList = !showOtherList; render(); }; }
+  const signOutBtn = document.getElementById('signOutBtn');
+  if(signOutBtn){ signOutBtn.onclick = signOut; }
+  const dayTotalBtn = document.getElementById('dayTotalBtn');
+  if(dayTotalBtn){
+    dayTotalBtn.onclick = () => {
+      const date = document.getElementById('dayTotalDate').value || todayStr();
+      const total = parseFloat(document.getElementById('dayTotalAmount').value);
+      if(isNaN(total) || total < 0){ alert('لازم تدخل مبلغ صحيح'); return; }
+      if(date < state.periodStart || date > info.periodEnd){ alert('التاريخ لازم يكون ضمن الفترة الحالية'); return; }
+      logDayTotal(date, total);
+    };
+  }
+  document.getElementById('resetBtn').onclick = startNewPeriodFlow;
+  document.getElementById('editBudgetBtn').onclick = ()=>{ ui={mode:'editBudget'}; render(); };
+  document.getElementById('exportBtn').onclick = exportBackup;
+  document.getElementById('importBtn').onclick = ()=> document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = (e)=>{ if(e.target.files[0]) importBackup(e.target.files[0]); };
+
+  const chartCanvas = document.getElementById('historyChart');
+  if(chartCanvas) drawHistoryChart(chartCanvas, state.history);
+}
+
+initAuth();
+</script>
+</body>
+</html>
