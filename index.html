@@ -81,6 +81,8 @@ button.secondary{ width:100%; padding:10px 0; border:1px solid var(--ink); borde
 .stat .k{ font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
 .stat .v{ font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; direction:ltr; text-align:right; }
 .stat .v.neg{ color:var(--rust); }
+.stat .v.pos{ color:var(--green); }
+.hero .sub{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
 
 .pace{ margin-top:16px; }
 .pace .row{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
@@ -123,7 +125,7 @@ canvas{ width:100%; height:140px; display:block; }
 
 <script>
 const STORAGE_KEY = 'budget-state-v2';
-const APP_VERSION = 'v3.0 — 2026/09/05';
+const APP_VERSION = 'v3.1 — 2026/10/05';
 const SUPABASE_URL = 'https://cjczauxbziygxjmhptag.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_oi_tSJ30GHNTJaUJxEUQkA_dEt1MEf2';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -299,7 +301,7 @@ function deleteExpense(id){
 function computeCurrentPeriodInfo(){
   const today = todayStr();
   const periodEnd = getPeriodEnd(state.periodStart, state.periodType, state.salaryDay);
-  const allocStart = state.trackingStart || state.periodStart; // من هون بتحسب الميزانية فعلياً، مو من أول الشهر
+  const allocStart = state.trackingStart || state.periodStart; // من هون بتبلش الحصص الفعلية
   const daysInPeriod = daysBetweenInclusive(allocStart, periodEnd);
   let daysRemainingPeriod = daysBetweenInclusive(today, periodEnd);
   const periodOver = daysRemainingPeriod <= 0;
@@ -308,38 +310,28 @@ function computeCurrentPeriodInfo(){
   const remainingBudget = state.budgetAmount - totalSpent;
   const spentToday = sumExpensesBetween(state.expenses, today, today);
 
-  let weeks=null, currentWeekIndex=-1, weeksTable=[], dailyAllowance=null, currentWeekBudget=null, spentThisWeek=null;
+  // الحصة اليومية ثابتة: الميزانية ÷ عدد أيام الفترة (من أول تتبع لآخر الفترة)
+  const dailyFixed = state.budgetAmount / Math.max(daysInPeriod,1);
+
+  // الرصيد المدور: فرق الأيام اللي خلصت (قبل اليوم) بين الحصة الثابتة والصرف الفعلي
+  const daysDone = Math.min(daysInPeriod, Math.max(0, daysBetweenInclusive(allocStart, today) - 1));
+  const spentBefore = sumExpensesBefore(state.expenses, today);
+  const rolledBalance = dailyFixed * daysDone - spentBefore;
+
+  let weeksTable=[], currentWeekIndex=-1, weeklyBudget=null, weeklyRemaining=null;
 
   if(state.periodType==='monthly'){
-    weeks = buildWeeks(allocStart, periodEnd);
+    const weeks = buildWeeks(allocStart, periodEnd);
     currentWeekIndex = weeks.findIndex(w => today>=w.start && today<=w.end);
     if(currentWeekIndex===-1) currentWeekIndex = periodOver ? weeks.length-1 : 0;
-    let spentBefore = 0; // مصروف حقيقي بالأسابيع يلي خلصت
-    for(let i=0;i<weeks.length;i++){
-      const w = weeks[i];
-      if(i>currentWeekIndex){ weeksTable.push({...w, budget:null, spent:null, diff:null, pending:true}); continue; }
-      const remainingDaysTotal = daysBetweenInclusive(w.start, periodEnd);
-      const weekLength = daysBetweenInclusive(w.start, w.end);
-      const wBudget = (state.budgetAmount - spentBefore) * (weekLength / remainingDaysTotal);
-      const wSpentReal = sumExpensesBetween(state.expenses, w.start, w.end);
-      weeksTable.push({...w, budget:wBudget, spent:wSpentReal, diff:wBudget-wSpentReal, pending:false});
-      if(i===currentWeekIndex){
-        currentWeekBudget = wBudget;
-        spentThisWeek = sumExpensesBetween(state.expenses, w.start, today);
-      } else {
-        spentBefore += wSpentReal;
-      }
-    }
-    if(!periodOver){
-      const w = weeks[currentWeekIndex];
-      const daysRemainingInWeek = daysBetweenInclusive(today, w.end);
-      dailyAllowance = (currentWeekBudget - spentThisWeek) / Math.max(daysRemainingInWeek,1);
-    }
-  } else {
-    if(!periodOver){
-      const spentSoFar = sumExpensesBetween(state.expenses, allocStart, today);
-      dailyAllowance = (state.budgetAmount - spentSoFar) / Math.max(daysRemainingPeriod,1);
-    }
+    weeks.forEach((w,i)=>{
+      const len = daysBetweenInclusive(w.start, w.end);
+      const wBudget = dailyFixed * len;
+      if(i>currentWeekIndex){ weeksTable.push({...w, budget:wBudget, spent:null, diff:null, pending:true}); return; }
+      const wSpent = sumExpensesBetween(state.expenses, w.start, w.end);
+      weeksTable.push({...w, budget:wBudget, spent:wSpent, diff:wBudget-wSpent, pending:false});
+      if(i===currentWeekIndex){ weeklyBudget = wBudget; weeklyRemaining = wBudget - wSpent; }
+    });
   }
 
   const elapsedDays = daysInPeriod - daysRemainingPeriod + (periodOver?0:1);
@@ -347,7 +339,8 @@ function computeCurrentPeriodInfo(){
   const pctSpent = state.budgetAmount>0 ? (totalSpent/state.budgetAmount)*100 : 0;
 
   return { today, periodEnd, daysInPeriod, daysRemainingPeriod, periodOver, totalSpent, remainingBudget,
-           spentToday, weeksTable, currentWeekIndex, dailyAllowance, pctTime, pctSpent };
+           spentToday, weeksTable, currentWeekIndex, dailyFixed, rolledBalance, weeklyBudget, weeklyRemaining,
+           pctTime, pctSpent };
 }
 
 function startNewPeriodFlow(){ ui = { mode:'newPeriod' }; render(); }
@@ -454,7 +447,7 @@ function render(){
 
   if(!state){
     app.innerHTML = `
-      <div class="masthead"><h1>دفتر المصروف</h1><p>حدد ميزانيتك، وهو بيحسب لك المسموح تصرفه كل يوم</p><div class="ver">${APP_VERSION}</div></div>
+      <div class="masthead"><h1>دفتر المصروف</h1><p>حدد ميزانيتك، وهو بيحسب لك حصتك اليومية الثابتة</p><div class="ver">${APP_VERSION}</div></div>
       <div class="card">
         <h2>حدد الميزانية</h2>
         <div class="seg"><button id="segWeekly" class="active">أسبوعي</button><button id="segMonthly">شهري</button></div>
@@ -462,8 +455,8 @@ function render(){
         <button class="primary" id="setupBtn">حفظ</button>
       </div>
       <div class="card">
-        <h2>ميزانية عامة (اختياري)</h2>
-        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">لمصاريف ثانية (فواتير، التزامات...) بتتخصم من هون بس، وما بتأثر على "المسموح تصرفه اليوم" الشخصي.</div>
+        <h2>ميزانية الالتزامات (اختياري)</h2>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">للفواتير والالتزامات والمصاريف الثانية. بتتخصم من هون بس، وما بتأثر على الحصة اليومية.</div>
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="setupGeneralAmount" placeholder="مثلاً 100، أو اتركه فاضي" min="0" step="0.01"></div>
       </div>
       <button class="linklike" id="importBtn0">عندي نسخة احتياطية، بدي أسترجعها</button>
@@ -495,7 +488,7 @@ function render(){
         <h2>ملخص الفترة الحالية</h2>
         <div class="stats">
           <div class="stat"><div class="k">الميزانية</div><div class="v">${fmt(state.budgetAmount)}</div></div>
-          <div class="stat"><div class="k">المصروف</div><div class="v">${fmt(info.totalSpent)}</div></div>
+          <div class="stat"><div class="k">الصرف</div><div class="v">${fmt(info.totalSpent)}</div></div>
           <div class="stat"><div class="k">${diff>=0?'فائض':'عجز'}</div><div class="v ${diff<0?'neg':''}">${fmt(Math.abs(diff))}</div></div>
           <div class="stat"><div class="k">السيفنج بعد التسوية</div><div class="v ${projectedSavings<0?'neg':''}">${fmt(projectedSavings)}</div></div>
         </div>
@@ -509,7 +502,7 @@ function render(){
         ${projectedSavings<0 ? `
         <div class="field"><label>قديش بدك تسدد من هالفترة؟ (اختياري)</label><input type="number" id="npRepay" placeholder="0" min="0" step="0.01"></div>
         ` : ''}
-        <div class="field"><label>الميزانية العامة (اختياري)</label><input type="number" id="npGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
+        <div class="field"><label>ميزانية الالتزامات (اختياري)</label><input type="number" id="npGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
         <button class="primary" id="npConfirm">تأكيد وبدء الفترة</button>
         <button class="secondary" id="npCancel">رجوع</button>
       </div>`;
@@ -533,7 +526,7 @@ function render(){
       <div class="card">
         <div class="seg"><button id="segW" class="${state.periodType==='weekly'?'active':''}">أسبوعي</button><button id="segM" class="${state.periodType==='monthly'?'active':''}">شهري</button></div>
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="ebAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
-        <div class="field"><label>الميزانية العامة (اختياري)</label><input type="number" id="ebGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
+        <div class="field"><label>ميزانية الالتزامات (اختياري)</label><input type="number" id="ebGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
         <button class="primary" id="ebSave">حفظ</button>
         <button class="secondary" id="ebCancel">رجوع</button>
       </div>`;
@@ -557,7 +550,10 @@ function render(){
   }
 
   // --- dashboard ---
-  const leftToday = info.dailyAllowance!==null ? (info.dailyAllowance - info.spentToday) : null;
+  const leftToday = info.periodOver ? null : (info.dailyFixed - info.spentToday);
+  const rolled = info.rolledBalance;
+  const rolledCls = rolled>0.005 ? 'pos' : (rolled<-0.005 ? 'neg' : '');
+  const isMonthly = state.periodType==='monthly';
 
   let savingsBanner = '';
   if(state.savings > 0.001){
@@ -569,18 +565,19 @@ function render(){
   let heroHtml;
   if(info.periodOver){
     heroHtml = `<div class="banner info">انتهت الفترة الحالية. اضغط "بدء فترة جديدة" تحت.</div>
-      <div class="hero"><div class="label">إجمالي المصروف بهذه الفترة</div><div class="amount">${fmt(info.totalSpent)}<span class="unit">د.أ</span></div></div>`;
+      <div class="hero"><div class="label">إجمالي الصرف اليومي بهذه الفترة</div><div class="amount">${fmt(info.totalSpent)}<span class="unit">د.أ</span></div></div>`;
   } else {
     heroHtml = `
       <div class="hero">
-        <div class="label">المسموح تصرفه اليوم</div>
+        <div class="label">المتبقي من حصتك اليوم</div>
         <div class="amount ${leftToday<0?'over':''}">${fmt(leftToday)}<span class="unit">د.أ</span></div>
+        <div class="sub">الحصة اليومية الثابتة: ${fmt(info.dailyFixed)} د.أ</div>
+        <div class="sub">صرفت اليوم: ${fmt(info.spentToday)} · أيام متبقية: ${info.daysRemainingPeriod} من ${info.daysInPeriod}</div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="k">صرفت اليوم</div><div class="v">${fmt(info.spentToday)}</div></div>
-        <div class="stat"><div class="k">متبقي من الميزانية</div><div class="v ${info.remainingBudget<0?'neg':''}">${fmt(info.remainingBudget)}</div></div>
-        <div class="stat"><div class="k">إجمالي المصروف</div><div class="v">${fmt(info.totalSpent)}</div></div>
-        <div class="stat"><div class="k">أيام متبقية</div><div class="v">${info.daysRemainingPeriod} / ${info.daysInPeriod}</div></div>
+        ${isMonthly ? `<div class="stat"><div class="k">متبقي من ميزانية الأسبوع</div><div class="v ${info.weeklyRemaining<0?'neg':''}">${fmt(info.weeklyRemaining)}</div></div>` : ''}
+        <div class="stat" ${isMonthly?'':'style="grid-column:1/-1;"'}><div class="k">${isMonthly?'متبقي من ميزانية الشهر':'متبقي من ميزانية الأسبوع'}</div><div class="v ${info.remainingBudget<0?'neg':''}">${fmt(info.remainingBudget)}</div></div>
+        <div class="stat" style="grid-column:1/-1;"><div class="k">الرصيد المدور (فرق الأيام اللي مضت عن الحصة الثابتة)</div><div class="v ${rolledCls}">${rolled>0.005?'+':''}${fmt(rolled)}</div></div>
       </div>
       <div class="pace">
         <div class="row"><span>الوقت يلي مضى</span><span>${Math.round(info.pctTime)}%</span></div>
@@ -603,9 +600,9 @@ function render(){
         </div>
         ${showWeeks ? `
         <table class="weeks" style="margin-top:10px;">
-          <tr><th>الأسبوع</th><th>الميزانية</th><th>المصروف</th><th>الفرق</th></tr>
+          <tr><th>الأسبوع</th><th>الحصة</th><th>الصرف</th><th>الفرق</th></tr>
           ${info.weeksTable.map((w,i)=> w.pending ? `
-            <tr><td class="name">${w.start.slice(5)} – ${w.end.slice(5)}</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td class="name">${w.start.slice(5)} – ${w.end.slice(5)}</td><td>${fmt(w.budget)}</td><td>—</td><td>—</td></tr>
           ` : `
             <tr class="${i===info.currentWeekIndex?'current':''}">
               <td class="name">${w.start.slice(5)} – ${w.end.slice(5)}${i===info.currentWeekIndex?' (الحالي)':''}</td>
@@ -628,7 +625,7 @@ function render(){
           <div>${e.note?e.note:'بدون ملاحظة'}</div>
           <div style="display:flex;align-items:center;gap:8px;"><div class="amt">${fmt(e.amount)}</div><button class="del" data-id="${e.id}">✕</button></div>
         </div>`).join('')}
-    </div>`).join('') : `<div class="empty">لسا ما سجلت مصاريف بهذه الفترة</div>`;
+    </div>`).join('') : `<div class="empty">لسا ما سجلت صرف يومي بهذه الفترة</div>`;
   const otherByDate = {};
   (state.otherExpenses||[]).forEach(e => { (otherByDate[e.date] = otherByDate[e.date] || []).push(e); });
   const otherSortedDates = Object.keys(otherByDate).sort().reverse();
@@ -640,20 +637,20 @@ function render(){
           <div>${e.note?e.note:'بدون ملاحظة'}</div>
           <div style="display:flex;align-items:center;gap:8px;"><div class="amt">${fmt(e.amount)}</div><button class="delOther" data-id="${e.id}">✕</button></div>
         </div>`).join('')}
-    </div>`).join('') : `<div class="empty">لسا ما سجلت مصاريف أخرى</div>`;
+    </div>`).join('') : `<div class="empty">لسا ما سجلت التزامات</div>`;
 
   let otherBudgetHtml = '';
   if(state.generalBudgetAmount>0 || otherSpent>0){
     otherBudgetHtml = `
       <div class="card">
-        <h2>ميزانية المصاريف الأخرى <small>(ما بتأثر على المسموح اليومي)</small></h2>
+        <h2>ميزانية الالتزامات <small>(المصاريف الأخرى — ما بتأثر على الحصة اليومية)</small></h2>
         <div class="stats">
           <div class="stat"><div class="k">الميزانية</div><div class="v">${fmt(state.generalBudgetAmount||0)}</div></div>
           <div class="stat"><div class="k">صرفت منها</div><div class="v">${fmt(otherSpent)}</div></div>
           <div class="stat" style="grid-column:1/-1;"><div class="k">المتبقي</div><div class="v ${generalRemaining<0?'neg':''}">${fmt(generalRemaining)}</div></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
-          <h2 style="margin:0;">تسجيل مصروف آخر</h2>
+          <h2 style="margin:0;">تسجيل التزام أو فاتورة</h2>
           <button class="linklike" id="toggleOtherAdd" style="margin:0;width:auto;">${showOtherAdd?'إخفاء':'إظهار'}</button>
         </div>
         ${showOtherAdd ? `
@@ -661,7 +658,7 @@ function render(){
         <div class="field" style="margin-top:8px;"><input type="text" id="otherNote" placeholder="ملاحظة (مثلاً: فاتورة كهرباء)"></div>
         ` : ''}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
-          <h2 style="margin:0;">مصاريف أخرى مسجلة</h2>
+          <h2 style="margin:0;">الالتزامات المسجلة</h2>
           <button class="linklike" id="toggleOtherList" style="margin:0;width:auto;">${showOtherList?'إخفاء':'إظهار'}</button>
         </div>
         ${showOtherList ? `<div style="margin-top:10px;">${otherExpensesHtml}</div>` : ''}
@@ -674,7 +671,7 @@ function render(){
       <div class="card">
         <h2>مقارنة الفترات السابقة</h2>
         <canvas id="historyChart"></canvas>
-        <div class="legend"><span><i style="background:#CFC9B8"></i>الميزانية</span><span><i style="background:#2F6F4E"></i>المصروف (ضمن الحد)</span><span><i style="background:#B5442E"></i>المصروف (تجاوز)</span></div>
+        <div class="legend"><span><i style="background:#CFC9B8"></i>الميزانية</span><span><i style="background:#2F6F4E"></i>الصرف (ضمن الحد)</span><span><i style="background:#B5442E"></i>الصرف (تجاوز)</span></div>
       </div>`;
   }
 
@@ -686,7 +683,7 @@ function render(){
     ${!info.periodOver ? `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h2 style="margin:0;">تسجيل مصروف</h2>
+        <h2 style="margin:0;">تسجيل صرف يومي</h2>
         <button class="linklike" id="toggleAddExpense" style="margin:0;width:auto;">${showAddExpense?'إخفاء':'إظهار'}</button>
       </div>
       ${showAddExpense ? `
@@ -703,14 +700,14 @@ function render(){
       ${showDayTotalForm ? `
         <div style="font-size:12px;color:var(--ink-soft);margin:8px 0 12px;">لو عرفت قديش صرفت إجمالاً بيوم معين، حط المجموع هون. إذا كان في مصاريف مسجلة قبل هيك لنفس اليوم، بيحسب الفرق ويضيفه بس، بدون تكرار.</div>
         <div class="field"><label>التاريخ</label><input type="date" id="dayTotalDate" value="${info.today}" min="${state.periodStart}" max="${info.periodEnd}"></div>
-        <div class="field"><label>مجموع المصروف لهذا اليوم (د.أ)</label><input type="number" id="dayTotalAmount" placeholder="مثلاً 25" min="0" step="0.01"></div>
+        <div class="field"><label>مجموع الصرف لهذا اليوم (د.أ)</label><input type="number" id="dayTotalAmount" placeholder="مثلاً 25" min="0" step="0.01"></div>
         <button class="primary" id="dayTotalBtn">احسب وسجل الفرق</button>
       ` : ''}
       ` : ''}
     </div>` : ''}
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h2 style="margin:0;">مصاريف هذه الفترة</h2>
+        <h2 style="margin:0;">سجل الصرف اليومي</h2>
         <button class="linklike" id="toggleExpenseList" style="margin:0;width:auto;">${showExpenseList?'إخفاء':'إظهار'}</button>
       </div>
       ${showExpenseList ? `<div style="margin-top:10px;">${expensesHtml}</div>` : ''}
