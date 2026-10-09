@@ -125,7 +125,7 @@ canvas{ width:100%; height:140px; display:block; }
 
 <script>
 const STORAGE_KEY = 'budget-state-v2';
-const APP_VERSION = 'v3.1 — 2026/10/05';
+const APP_VERSION = 'v3.2 — 2026/10/09';
 const SUPABASE_URL = 'https://cjczauxbziygxjmhptag.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_oi_tSJ30GHNTJaUJxEUQkA_dEt1MEf2';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -263,10 +263,11 @@ function importBackup(file){
   reader.readAsText(file);
 }
 
-function setupBudget(type, amount, salaryDay, generalAmount){
+function setupBudget(type, amount, salaryDay, generalAmount, startDate){
   const sDay = salaryDay || 1;
-  const start = type==='monthly' ? monthlyPeriodStartContaining(todayStr(), sDay) : todayStr();
-  state = { periodType:type, budgetAmount:amount, periodStart:start, salaryDay:sDay, trackingStart:todayStr(), expenses:[], savings:0, history:[], generalBudgetAmount:(generalAmount||0), otherExpenses:[] };
+  const sd = startDate || todayStr();
+  const start = type==='monthly' ? monthlyPeriodStartContaining(sd, sDay) : sd;
+  state = { periodType:type, budgetAmount:amount, periodStart:start, salaryDay:sDay, trackingStart:sd, expenses:[], savings:0, history:[], generalBudgetAmount:(generalAmount||0), otherExpenses:[] };
   saveState(); render();
 }
 function addExpense(amount, note, date){
@@ -303,19 +304,21 @@ function computeCurrentPeriodInfo(){
   const periodEnd = getPeriodEnd(state.periodStart, state.periodType, state.salaryDay);
   const allocStart = state.trackingStart || state.periodStart; // من هون بتبلش الحصص الفعلية
   const daysInPeriod = daysBetweenInclusive(allocStart, periodEnd);
-  let daysRemainingPeriod = daysBetweenInclusive(today, periodEnd);
+  const notStarted = today < allocStart;
+  const refDay = notStarted ? allocStart : today;
+  let daysRemainingPeriod = daysBetweenInclusive(refDay, periodEnd);
   const periodOver = daysRemainingPeriod <= 0;
   if(daysRemainingPeriod < 0) daysRemainingPeriod = 0;
-  const totalSpent = state.expenses.reduce((s,e)=>s+e.amount,0);
+  const totalSpent = state.expenses.filter(e=>e.date>=allocStart).reduce((s,e)=>s+e.amount,0);
   const remainingBudget = state.budgetAmount - totalSpent;
-  const spentToday = sumExpensesBetween(state.expenses, today, today);
+  const spentToday = notStarted ? 0 : sumExpensesBetween(state.expenses, today, today);
 
   // الحصة اليومية ثابتة: الميزانية ÷ عدد أيام الفترة (من أول تتبع لآخر الفترة)
   const dailyFixed = state.budgetAmount / Math.max(daysInPeriod,1);
 
   // الرصيد المدور: فرق الأيام اللي خلصت (قبل اليوم) بين الحصة الثابتة والصرف الفعلي
   const daysDone = Math.min(daysInPeriod, Math.max(0, daysBetweenInclusive(allocStart, today) - 1));
-  const spentBefore = sumExpensesBefore(state.expenses, today);
+  const spentBefore = state.expenses.filter(e=>e.date>=allocStart && e.date<today).reduce((s,e)=>s+e.amount,0);
   const rolledBalance = dailyFixed * daysDone - spentBefore;
 
   let weeksTable=[], currentWeekIndex=-1, weeklyBudget=null, weeklyRemaining=null;
@@ -334,11 +337,11 @@ function computeCurrentPeriodInfo(){
     });
   }
 
-  const elapsedDays = daysInPeriod - daysRemainingPeriod + (periodOver?0:1);
+  const elapsedDays = notStarted ? 0 : (daysInPeriod - daysRemainingPeriod + (periodOver?0:1));
   const pctTime = Math.min(100, Math.max(0, (elapsedDays/daysInPeriod)*100));
   const pctSpent = state.budgetAmount>0 ? (totalSpent/state.budgetAmount)*100 : 0;
 
-  return { today, periodEnd, daysInPeriod, daysRemainingPeriod, periodOver, totalSpent, remainingBudget,
+  return { today, allocStart, notStarted, periodEnd, daysInPeriod, daysRemainingPeriod, periodOver, totalSpent, remainingBudget,
            spentToday, weeksTable, currentWeekIndex, dailyFixed, rolledBalance, weeklyBudget, weeklyRemaining,
            pctTime, pctSpent };
 }
@@ -346,7 +349,8 @@ function computeCurrentPeriodInfo(){
 function startNewPeriodFlow(){ ui = { mode:'newPeriod' }; render(); }
 function cancelFlow(){ ui = { mode:'dashboard' }; render(); }
 
-function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount){
+function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount, startDate){
+  const sd = startDate || todayStr();
   const info = computeCurrentPeriodInfo();
   const diff = state.budgetAmount - info.totalSpent;
   state.history.push({ type:state.periodType, amount:state.budgetAmount, start:state.periodStart, end:info.periodEnd, spent:info.totalSpent, diff });
@@ -355,8 +359,8 @@ function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount){
     state.savings += repayAmount;
     newAmount = newAmount - repayAmount;
   }
-  state.periodStart = state.periodType==='monthly' ? monthlyPeriodStartContaining(todayStr(), state.salaryDay||1) : todayStr();
-  state.trackingStart = todayStr();
+  state.periodStart = state.periodType==='monthly' ? monthlyPeriodStartContaining(sd, state.salaryDay||1) : sd;
+  state.trackingStart = sd;
   state.expenses = [];
   state.otherExpenses = [];
   state.budgetAmount = newAmount;
@@ -452,6 +456,7 @@ function render(){
         <h2>حدد الميزانية</h2>
         <div class="seg"><button id="segWeekly" class="active">أسبوعي</button><button id="segMonthly">شهري</button></div>
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="setupAmount" placeholder="مثلاً 300" min="0" step="0.01"></div>
+        <div class="field"><label>تبلش الحسبة من</label><input type="date" id="setupStart" value="${todayStr()}" min="${todayStr()}"></div>
         <button class="primary" id="setupBtn">حفظ</button>
       </div>
       <div class="card">
@@ -470,7 +475,9 @@ function render(){
       const val=parseFloat(document.getElementById('setupAmount').value);
       if(!val||val<=0){alert('لازم تدخل مبلغ صحيح');return;}
       const genVal = parseFloat(document.getElementById('setupGeneralAmount').value) || 0;
-      setupBudget(type,val,1,genVal);
+      const sStart = document.getElementById('setupStart').value || todayStr();
+      if(sStart < todayStr()){alert('تاريخ البداية لازم يكون اليوم أو بعده');return;}
+      setupBudget(type,val,1,genVal,sStart);
     };
     return;
   }
@@ -499,6 +506,7 @@ function render(){
       <div class="card">
         <h2>الفترة الجديدة</h2>
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="npAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
+        <div class="field"><label>تبلش الحسبة من</label><input type="date" id="npStart" value="${todayStr()}" min="${todayStr()}"></div>
         ${projectedSavings<0 ? `
         <div class="field"><label>قديش بدك تسدد من هالفترة؟ (اختياري)</label><input type="number" id="npRepay" placeholder="0" min="0" step="0.01"></div>
         ` : ''}
@@ -513,7 +521,9 @@ function render(){
       const repay = repayEl ? (parseFloat(repayEl.value)||0) : 0;
       if(repay > amt){ alert('ما تقدر تسدد أكتر من مبلغ الميزانية'); return; }
       const genAmt = parseFloat(document.getElementById('npGeneral').value) || 0;
-      confirmNewPeriod(amt, repay, genAmt);
+      const npStart = document.getElementById('npStart').value || todayStr();
+      if(npStart < todayStr()){ alert('تاريخ البداية لازم يكون اليوم أو بعده'); return; }
+      confirmNewPeriod(amt, repay, genAmt, npStart);
     };
     document.getElementById('npCancel').onclick = cancelFlow;
     return;
@@ -522,11 +532,13 @@ function render(){
   // --- editBudget flow ---
   if(ui.mode==='editBudget'){
     app.innerHTML = `
-      <div class="masthead"><h1>تعديل الميزانية</h1><p>لنفس الفترة الحالية، بدون تصفير المصاريف</p></div>
+      <div class="masthead"><h1>تعديل الميزانية</h1><p>لنفس الفترة الحالية، ومصاريفك المسجلة ما بتنحذف</p></div>
       <div class="card">
         <div class="seg"><button id="segW" class="${state.periodType==='weekly'?'active':''}">أسبوعي</button><button id="segM" class="${state.periodType==='monthly'?'active':''}">شهري</button></div>
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="ebAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
         <div class="field"><label>ميزانية الالتزامات (اختياري)</label><input type="number" id="ebGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
+        <div class="field"><label>تبلش الحسبة من</label><input type="date" id="ebStart" value="${todayStr()}" min="${todayStr()}"></div>
+        <div style="font-size:12px;color:var(--ink-soft);margin:-4px 0 12px;">الميزانية بتتوزع على الأيام من هالتاريخ لآخر الفترة، والرصيد المدور بيبدأ من صفر. مصاريفك المسجلة ما بتنحذف.</div>
         <button class="primary" id="ebSave">حفظ</button>
         <button class="secondary" id="ebCancel">رجوع</button>
       </div>`;
@@ -537,9 +549,17 @@ function render(){
       const amt=parseFloat(document.getElementById('ebAmount').value);
       if(!amt||amt<=0){alert('مبلغ غير صحيح');return;}
       state.salaryDay = 1;
+      const eStart = document.getElementById('ebStart').value || todayStr();
+      if(eStart < todayStr()){ alert('تاريخ البداية لازم يكون اليوم أو بعده'); return; }
       if(type==='monthly' && state.periodType!=='monthly'){
-        state.periodStart = monthlyPeriodStartContaining(todayStr(), 1);
-        state.trackingStart = todayStr();
+        state.periodStart = monthlyPeriodStartContaining(eStart, 1);
+        state.trackingStart = eStart;
+      } else if(type==='weekly' && state.periodType!=='weekly'){
+        state.periodStart = eStart;
+        state.trackingStart = eStart;
+      } else {
+        if(eStart > getPeriodEnd(state.periodStart, state.periodType, 1)){ alert('تاريخ البداية لازم يكون ضمن الفترة الحالية (لحد ' + getPeriodEnd(state.periodStart, state.periodType, 1) + ')'); return; }
+        state.trackingStart = eStart;
       }
       state.budgetAmount=amt; state.periodType=type;
       state.generalBudgetAmount = parseFloat(document.getElementById('ebGeneral').value) || 0;
@@ -569,7 +589,7 @@ function render(){
   } else {
     heroHtml = `
       <div class="hero">
-        <div class="label">المتبقي من حصتك اليوم</div>
+        <div class="label">${info.notStarted ? 'الحصة اليومية — بتبلش من ' + info.allocStart : 'المتبقي من حصتك اليوم'}</div>
         <div class="amount ${leftToday<0?'over':''}">${fmt(leftToday)}<span class="unit">د.أ</span></div>
         <div class="sub">الحصة اليومية الثابتة: ${fmt(info.dailyFixed)} د.أ</div>
         <div class="sub">صرفت اليوم: ${fmt(info.spentToday)} · أيام متبقية: ${info.daysRemainingPeriod} من ${info.daysInPeriod}</div>
@@ -691,7 +711,7 @@ function render(){
       <div class="field" style="margin-top:8px;"><input type="text" id="expNote" placeholder="ملاحظة (اختياري)"></div>
       <div class="field">
         <label>التاريخ</label>
-        <input type="date" id="expDate" value="${info.today}" min="${state.periodStart}" max="${info.periodEnd}">
+        <input type="date" id="expDate" value="${info.notStarted ? info.allocStart : info.today}" min="${info.allocStart}" max="${info.periodEnd}">
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
         <h2 style="margin:0;font-size:13px;">أو سجل مجموع يوم كامل دفعة وحدة</h2>
@@ -699,7 +719,7 @@ function render(){
       </div>
       ${showDayTotalForm ? `
         <div style="font-size:12px;color:var(--ink-soft);margin:8px 0 12px;">لو عرفت قديش صرفت إجمالاً بيوم معين، حط المجموع هون. إذا كان في مصاريف مسجلة قبل هيك لنفس اليوم، بيحسب الفرق ويضيفه بس، بدون تكرار.</div>
-        <div class="field"><label>التاريخ</label><input type="date" id="dayTotalDate" value="${info.today}" min="${state.periodStart}" max="${info.periodEnd}"></div>
+        <div class="field"><label>التاريخ</label><input type="date" id="dayTotalDate" value="${info.notStarted ? info.allocStart : info.today}" min="${info.allocStart}" max="${info.periodEnd}"></div>
         <div class="field"><label>مجموع الصرف لهذا اليوم (د.أ)</label><input type="number" id="dayTotalAmount" placeholder="مثلاً 25" min="0" step="0.01"></div>
         <button class="primary" id="dayTotalBtn">احسب وسجل الفرق</button>
       ` : ''}
@@ -729,7 +749,7 @@ function render(){
       const note = document.getElementById('expNote').value.trim();
       const date = document.getElementById('expDate').value || todayStr();
       if(!amt||amt<=0){ alert('لازم تدخل مبلغ صحيح'); return; }
-      if(date < state.periodStart || date > info.periodEnd){ alert('التاريخ لازم يكون ضمن الفترة الحالية'); return; }
+      if(date < info.allocStart || date > info.periodEnd){ alert('التاريخ لازم يكون من بداية الحسبة (' + info.allocStart + ') لآخر الفترة'); return; }
       addExpense(amt, note, date);
     };
   }
@@ -766,7 +786,7 @@ function render(){
       const date = document.getElementById('dayTotalDate').value || todayStr();
       const total = parseFloat(document.getElementById('dayTotalAmount').value);
       if(isNaN(total) || total < 0){ alert('لازم تدخل مبلغ صحيح'); return; }
-      if(date < state.periodStart || date > info.periodEnd){ alert('التاريخ لازم يكون ضمن الفترة الحالية'); return; }
+      if(date < info.allocStart || date > info.periodEnd){ alert('التاريخ لازم يكون من بداية الحسبة (' + info.allocStart + ') لآخر الفترة'); return; }
       logDayTotal(date, total);
     };
   }
