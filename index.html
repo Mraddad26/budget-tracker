@@ -181,7 +181,7 @@ canvas{ width:100%; height:140px; display:block; }
 
 <script>
 const STORAGE_KEY = 'budget-state-v2';
-const APP_VERSION = 'v4.0 — 2026/10/31';
+const APP_VERSION = 'v4.1 — 2026/10/31';
 const SUPABASE_URL = 'https://cjczauxbziygxjmhptag.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_oi_tSJ30GHNTJaUJxEUQkA_dEt1MEf2';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -383,6 +383,19 @@ function computeCurrentPeriodInfo(){
   const spentBefore = state.expenses.filter(e=>e.date>=allocStart && e.date<today).reduce((s,e)=>s+e.amount,0);
   const rolledBalance = dailyFixed * daysDone - spentBefore;
 
+  // الحصة المعدّلة: كل يوم بالصبح = (الميزانية - اللي انصرف قبل اليوم) ÷ الأيام الباقية بما فيها اليوم
+  const dailyAdj = periodOver ? 0 : (notStarted ? dailyFixed : (state.budgetAmount - spentBefore) / Math.max(daysRemainingPeriod,1));
+  // سجل الحصة اليومية: كيف تغيرت الحصة من يوم لآخر
+  const allowSeries = [];
+  if(!notStarted){
+    for(let d=allocStart, guard=0; d<=today && d<=periodEnd && guard<400; guard++){
+      const sb4 = state.expenses.filter(e=>e.date>=allocStart && e.date<d).reduce((a,e)=>a+e.amount,0);
+      const rem = daysBetweenInclusive(d, periodEnd);
+      allowSeries.push({date:d, v:(state.budgetAmount-sb4)/Math.max(rem,1)});
+      d = toStr(new Date(dateFromStr(d).getTime()+86400000));
+    }
+  }
+
   let weeksTable=[], currentWeekIndex=-1, weeklyBudget=null, weeklyRemaining=null;
 
   if(state.periodType==='monthly'){
@@ -391,11 +404,17 @@ function computeCurrentPeriodInfo(){
     if(currentWeekIndex===-1) currentWeekIndex = periodOver ? weeks.length-1 : 0;
     weeks.forEach((w,i)=>{
       const len = daysBetweenInclusive(w.start, w.end);
-      const wBudget = dailyFixed * len;
+      const wBudget = (i>currentWeekIndex ? dailyAdj : dailyFixed) * len;
       if(i>currentWeekIndex){ weeksTable.push({...w, budget:wBudget, spent:null, diff:null, pending:true}); return; }
       const wSpent = sumExpensesBetween(state.expenses, w.start, w.end);
       weeksTable.push({...w, budget:wBudget, spent:wSpent, diff:wBudget-wSpent, pending:false});
-      if(i===currentWeekIndex){ weeklyBudget = wBudget; weeklyRemaining = wBudget - wSpent; }
+      if(i===currentWeekIndex){
+        const left = notStarted ? len : daysBetweenInclusive(today, w.end);
+        weeklyRemaining = dailyAdj * left - spentToday;
+        weeklyBudget = wSpent + weeklyRemaining;
+        weeksTable[weeksTable.length-1].budget = weeklyBudget;
+        weeksTable[weeksTable.length-1].diff = weeklyRemaining;
+      }
     });
   }
 
@@ -404,7 +423,7 @@ function computeCurrentPeriodInfo(){
   const pctSpent = state.budgetAmount>0 ? (totalSpent/state.budgetAmount)*100 : 0;
 
   return { today, allocStart, notStarted, periodEnd, daysInPeriod, daysRemainingPeriod, periodOver, totalSpent, remainingBudget,
-           spentToday, weeksTable, currentWeekIndex, dailyFixed, rolledBalance, weeklyBudget, weeklyRemaining,
+           spentToday, weeksTable, currentWeekIndex, dailyFixed, dailyAdj, allowSeries, rolledBalance, weeklyBudget, weeklyRemaining,
            pctTime, pctSpent };
 }
 
@@ -644,7 +663,7 @@ function render(){
   }
 
   // --- dashboard ---
-  const leftToday = info.periodOver ? null : (info.dailyFixed - info.spentToday);
+  const leftToday = info.periodOver ? null : (info.dailyAdj - info.spentToday);
   const rolled = info.rolledBalance;
   const rolledCls = rolled>0.005 ? 'pos' : (rolled<-0.005 ? 'neg' : '');
   const isMonthly = state.periodType==='monthly';
@@ -668,7 +687,7 @@ function render(){
         <button class="primary" id="resetBtn2">بدء فترة جديدة</button>
       </div>`;
   } else {
-    const frac = info.dailyFixed>0 ? Math.max(0, Math.min(1, leftToday/info.dailyFixed)) : 0;
+    const frac = info.dailyAdj>0 ? Math.max(0, Math.min(1, leftToday/info.dailyAdj)) : 0;
     const over = leftToday < -0.005;
     const tone = over ? 'red' : (frac>0.5 ? 'mint' : (frac>0.2 ? 'amber' : 'red'));
     const target = over ? C : frac*C;
@@ -687,7 +706,7 @@ function render(){
           </div>
         </div>
         <div class="ring-s">${status}</div>
-        <div class="ring-f">الحصة اليومية الثابتة <b>${fmt(info.dailyFixed)}</b> د.أ · باقي <b>${info.daysRemainingPeriod}</b> يوم</div>
+        <div class="ring-f">حصة اليوم <b>${fmt(info.dailyAdj)}</b> د.أ · بدأت بـ <b>${fmt(info.dailyFixed)}</b> · باقي <b>${info.daysRemainingPeriod}</b> يوم</div>
       </div>`;
   }
 
@@ -697,7 +716,7 @@ function render(){
     cards.push(`<div class="mini"><div class="k">باقي من الأسبوع</div><div class="v ${info.weeklyRemaining<0?'neg':''}">${fmt(info.weeklyRemaining)}</div></div>`);
   }
   cards.push(`<div class="mini"><div class="k">${isMonthly?'باقي من الشهر':'باقي من الأسبوع'}</div><div class="v ${info.remainingBudget<0?'neg':''}">${fmt(info.remainingBudget)}</div></div>`);
-  cards.push(`<div class="mini"><div class="k">الرصيد المدور</div><div class="v ${rolledCls}">${rolled>0.005?'+':''}${fmt(rolled)}</div><div class="h">فرق الأيام اللي مضت</div></div>`);
+  cards.push(`<div class="mini"><div class="k">الفرق عن الحصة الأصلية</div><div class="v ${rolledCls}">${rolled>0.005?'+':''}${fmt(rolled)}</div><div class="h">من أيام سابقة</div></div>`);
   const miniHtml = info.periodOver ? '' : `<div class="mini-grid" style="grid-template-columns:repeat(${cards.length},1fr);">${cards.join('')}</div>`;
 
   const paceHtml = info.periodOver ? '' : `
@@ -718,6 +737,18 @@ function render(){
       <button class="del" data-id="${e.id}">✕</button>
     </div>`).join('') : `<div class="empty">لسا ما سجلت صرف يومي، دوس + وابلش</div>`;
   const feedToggle = allRows.length>5 ? `<button id="toggleExpenseList">${showExpenseList?'عرض أقل':'عرض الكل ('+allRows.length+')'}</button>` : '';
+
+  // --- تطور الحصة اليومية ---
+  let trendHtml = '';
+  const ser = info.allowSeries;
+  if(ser.length>=2 && !info.periodOver){
+    const vals = ser.map(x=>x.v), mn = Math.min(...vals), mx = Math.max(...vals), rg = (mx-mn)||1;
+    const pts = vals.map((v,i)=> (i/(vals.length-1)*300).toFixed(1)+','+(50-((v-mn)/rg)*40).toFixed(1)).join(' ');
+    const first = vals[0], last = vals[vals.length-1];
+    trendHtml = `<div class="sect"><span>تطور حصتك اليومية</span></div>
+      <div class="card"><svg viewBox="0 0 300 60" style="width:100%;height:70px;display:block;" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${last<first-0.005?'#F2715E':'#46E0A0'}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+      <div class="ring-f" style="margin-top:8px;">من <b>${fmt(first)}</b> إلى <b>${fmt(last)}</b> د.أ خلال ${ser.length} يوم</div></div>`;
+  }
 
   // --- كروت الأسابيع ---
   let weeksHtml = '';
@@ -819,6 +850,7 @@ function render(){
     ${paceHtml}
     <div class="sect"><span>آخر الحركات</span>${feedToggle}</div>
     <div class="feed">${feedHtml}</div>
+    ${trendHtml}
     ${weeksHtml}
     ${otherBudgetHtml}
     ${historyHtml}
