@@ -7,115 +7,171 @@
 <meta name="apple-mobile-web-app-title" content="دفتر المصروف">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#EDEAE2">
+<meta name="theme-color" content="#0D1412">
 <title>دفتر المصروف</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
 :root{
-  --paper:#EDEAE2;
-  --paper-line:#DCD7C9;
-  --card:#FBFAF6;
-  --ink:#1F2A24;
-  --ink-soft:#5B6459;
-  --green:#2F6F4E;
-  --green-deep:#1E4E35;
-  --green-soft:#E4EEE7;
-  --rust:#B5442E;
-  --rust-soft:#F6E4DF;
-  --gold:#8A6A1E;
-  --gold-soft:#F4E7CE;
-  --border:#CFC9B8;
+  --bg:#0D1412;
+  --card:#15201C;
+  --card2:#1B2A25;
+  --line:#24352F;
+  --ink:#EAF3EE;
+  --ink-soft:#8CA197;
+  --mint:#46E0A0;
+  --mint-soft:rgba(70,224,160,.12);
+  --amber:#F4B94B;
+  --amber-soft:rgba(244,185,75,.12);
+  --red:#F2715E;
+  --red-soft:rgba(242,113,94,.13);
+  --radius:20px;
 }
-*{box-sizing:border-box;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{color-scheme:dark;}
 body{
   margin:0; min-height:100vh;
-  background:
-    repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 28px),
-    var(--paper);
+  background:radial-gradient(900px 420px at 50% -140px, rgba(70,224,160,.14), transparent 70%), var(--bg);
   font-family:'IBM Plex Sans Arabic', sans-serif;
   color:var(--ink);
-  padding:28px 16px 60px;
+  padding:22px 16px 130px;
 }
 .wrap{ max-width:480px; margin:0 auto; }
-.masthead{ text-align:center; margin-bottom:22px; padding-bottom:16px; border-bottom:2px solid var(--ink); }
-.masthead h1{ font-size:26px; font-weight:700; margin:0 0 4px; }
-.masthead p{ margin:0; font-size:13.5px; color:var(--ink-soft); }
-.masthead .ver{ margin-top:5px; font-size:10.5px; color:var(--border); }
+.masthead{ text-align:center; margin-bottom:18px; }
+.masthead h1{ font-size:22px; font-weight:700; margin:0 0 5px; letter-spacing:-.2px; }
+.masthead p{ margin:0; font-size:13px; color:var(--ink-soft); }
+.masthead .ver{ margin-top:5px; font-size:10.5px; color:#3A5046; }
 
-.card{ background:var(--card); border:1px solid var(--border); border-radius:6px; padding:18px; margin-bottom:14px; }
-.card h2{ font-size:14px; font-weight:600; margin:0 0 12px; color:var(--ink-soft); }
-.card h2 small{ font-weight:400; }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:14px; }
+.card h2{ font-size:13.5px; font-weight:600; margin:0 0 12px; color:var(--ink-soft); }
+.card h2 small{ font-weight:400; font-size:11.5px; }
 
-.banner{ font-size:13px; padding:10px 12px; border-radius:5px; margin-bottom:14px; text-align:center; }
-.banner.good{ background:var(--green-soft); border:1px solid #9FC5AE; color:var(--green-deep); }
-.banner.bad{ background:var(--rust-soft); border:1px solid #DDA495; color:var(--rust); }
-.banner.info{ background:var(--gold-soft); border:1px solid #D8B979; color:var(--gold); }
+.banner{ font-size:13px; padding:10px 12px; border-radius:14px; margin-bottom:14px; text-align:center; }
+.banner.good{ background:var(--mint-soft); border:1px solid rgba(70,224,160,.3); color:var(--mint); }
+.banner.bad{ background:var(--red-soft); border:1px solid rgba(242,113,94,.35); color:var(--red); }
+.banner.info{ background:var(--amber-soft); border:1px solid rgba(244,185,75,.35); color:var(--amber); }
 
-.seg{ display:flex; border:1px solid var(--ink); border-radius:5px; overflow:hidden; margin-bottom:12px; }
-.seg button{ flex:1; padding:9px 0; border:none; background:transparent; font-family:inherit; font-size:14px; font-weight:500; color:var(--ink); cursor:pointer; border-left:1px solid var(--ink); }
-.seg button:last-child{ border-left:none; }
-.seg button.active{ background:var(--ink); color:var(--paper); }
+.seg{ display:flex; background:var(--card2); border:1px solid var(--line); border-radius:14px; padding:3px; gap:3px; margin-bottom:12px; }
+.seg button{ flex:1; padding:9px 0; border:none; background:transparent; font-family:inherit; font-size:13.5px; font-weight:500; color:var(--ink-soft); cursor:pointer; border-radius:11px; }
+.seg button.active{ background:var(--mint); color:#06281B; font-weight:600; }
 
 .field{ margin-bottom:12px; }
 .field label{ display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:5px; }
 input[type=number], input[type=text], input[type=date], input[type=password], input[type=email]{
-  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:5px; background:#fff;
-  font-family:'IBM Plex Mono', monospace; font-size:15px; direction:ltr; text-align:right; color:var(--ink);
+  width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:13px; background:var(--card2);
+  font-family:'IBM Plex Mono', monospace; font-size:15px; direction:ltr; text-align:right; color:var(--ink); outline:none;
 }
+input:focus{ border-color:var(--mint); }
 input[type=text]{ font-family:'IBM Plex Sans Arabic', sans-serif; direction:rtl; text-align:right; }
+::placeholder{ color:#51665D; }
 
-button.primary{ width:100%; padding:11px 0; border:none; border-radius:5px; background:var(--green); color:#fff; font-family:inherit; font-size:14.5px; font-weight:600; cursor:pointer; }
-button.primary:active{ background:var(--green-deep); }
-button.secondary{ width:100%; padding:10px 0; border:1px solid var(--ink); border-radius:5px; background:transparent; color:var(--ink); font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; margin-top:8px; }
+button.primary{ width:100%; padding:13px 0; border:none; border-radius:15px; background:var(--mint); color:#06281B; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; }
+button.primary:active{ filter:brightness(.92); }
+button.secondary{ width:100%; padding:12px 0; border:1px solid var(--line); border-radius:15px; background:transparent; color:var(--ink); font-family:inherit; font-size:14px; font-weight:500; cursor:pointer; margin-top:8px; }
 
-.hero{ text-align:center; padding:6px 0 4px; }
-.hero .label{ font-size:13px; color:var(--ink-soft); margin-bottom:2px; }
-.hero .amount{ font-family:'IBM Plex Mono', monospace; font-size:44px; font-weight:600; direction:ltr; display:inline-block; }
-.hero .amount.over{ color:var(--rust); }
-.hero .unit{ font-size:16px; color:var(--ink-soft); margin-inline-start:6px; }
+/* hero ring */
+.hero-card{ text-align:center; padding:22px 18px 18px; }
+.ring{ position:relative; width:236px; height:236px; margin:0 auto; }
+.ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+.ring circle{ fill:none; stroke-width:15; }
+.ring .trk{ stroke:var(--card2); }
+.ring .arc{ stroke-linecap:round; transition:stroke-dasharray .9s cubic-bezier(.2,.8,.2,1); }
+.ring.mint .arc{ stroke:var(--mint); filter:drop-shadow(0 0 8px rgba(70,224,160,.45)); }
+.ring.amber .arc{ stroke:var(--amber); filter:drop-shadow(0 0 8px rgba(244,185,75,.4)); }
+.ring.red .arc{ stroke:var(--red); filter:drop-shadow(0 0 8px rgba(242,113,94,.4)); }
+.ring-c{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.ring-c .rl{ font-size:12.5px; color:var(--ink-soft); margin-bottom:2px; }
+.ring-c .rv{ font-family:'IBM Plex Mono', monospace; font-size:46px; font-weight:600; direction:ltr; line-height:1.1; }
+.ring.red .rv{ color:var(--red); }
+.ring-c .ru{ font-size:13px; color:var(--ink-soft); margin-top:2px; }
+.ring-s{ margin-top:14px; font-size:14px; font-weight:500; }
+.ring-f{ margin-top:5px; font-size:12px; color:var(--ink-soft); }
+.ring-f b{ color:var(--ink); font-family:'IBM Plex Mono', monospace; font-weight:600; }
+.hero-sum .k{ font-size:12.5px; color:var(--ink-soft); margin-bottom:4px; }
+.hero-sum .big{ font-family:'IBM Plex Mono', monospace; font-size:38px; font-weight:600; direction:ltr; margin-bottom:14px; }
+.hero-sum .unit{ font-size:15px; color:var(--ink-soft); margin-inline-start:6px; }
 
-.stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
-.stat{ border-top:1px solid var(--border); padding-top:8px; }
-.stat .k{ font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
-.stat .v{ font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; direction:ltr; text-align:right; }
-.stat .v.neg{ color:var(--rust); }
-.stat .v.pos{ color:var(--green); }
-.hero .sub{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
+/* stat cards */
+.mini-grid{ display:grid; gap:10px; margin-bottom:14px; }
+.mini{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:13px 12px; }
+.mini .k{ font-size:11.5px; color:var(--ink-soft); margin-bottom:6px; }
+.mini .v{ font-family:'IBM Plex Mono', monospace; font-size:19px; font-weight:600; direction:ltr; text-align:right; }
+.mini .v.neg, .stat .v.neg{ color:var(--red); }
+.mini .v.pos{ color:var(--mint); }
+.mini .h{ font-size:10.5px; color:#617a6f; margin-top:4px; }
 
-.pace{ margin-top:16px; }
-.pace .row{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
-.pace .bar{ height:7px; border-radius:4px; background:var(--paper-line); overflow:hidden; margin-bottom:8px; }
-.pace .bar > div{ height:100%; border-radius:4px; }
-.pace .bar.time > div{ background:var(--ink-soft); }
-.pace .bar.spent > div{ background:var(--green); }
-.pace .bar.spent.over > div{ background:var(--rust); }
+.pace{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:14px; }
+.pace .row{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-soft); margin-bottom:5px; }
+.bar{ height:7px; border-radius:5px; background:var(--card2); overflow:hidden; }
+.pace .bar{ margin-bottom:10px; }
+.pace .bar:last-child{ margin-bottom:0; }
+.bar > div{ height:100%; border-radius:5px; background:var(--mint); transition:width .6s ease; }
+.bar.time > div{ background:#5C7A6D; }
+.bar.over > div, .bar > div.over{ background:var(--red); }
 
-table.weeks{ width:100%; border-collapse:collapse; font-size:13px; }
-table.weeks th{ text-align:right; font-size:11px; color:var(--ink-soft); font-weight:500; padding:4px 4px; border-bottom:1px solid var(--border); }
-table.weeks td{ padding:6px 4px; border-bottom:1px solid var(--paper-line); font-family:'IBM Plex Mono', monospace; direction:ltr; text-align:right; }
-table.weeks td.name{ font-family:'IBM Plex Sans Arabic', sans-serif; direction:rtl; text-align:right; }
-table.weeks td.neg{ color:var(--rust); }
-table.weeks tr.current td{ font-weight:700; }
+.sect{ font-size:13px; font-weight:600; color:var(--ink-soft); margin:20px 4px 10px; display:flex; justify-content:space-between; align-items:center; }
+.sect button{ background:none; border:none; color:var(--mint); font-family:inherit; font-size:12.5px; cursor:pointer; padding:0; }
 
-.addrow{ display:flex; gap:8px; }
-.addrow input[type=number]{ flex:1; }
-.addrow button.primary{ width:auto; padding:0 16px; }
+/* feed */
+.feed{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:4px 14px; }
+.row{ display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+.row:last-child{ border-bottom:none; }
+.row .rt{ flex:1; min-width:0; }
+.row .rn{ font-size:14.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .rd{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+.row .ra{ font-family:'IBM Plex Mono', monospace; font-weight:600; direction:ltr; font-size:15px; }
+.row .del{ background:none; border:none; color:#5d7469; font-size:15px; cursor:pointer; padding:4px 6px; }
+.row.old{ opacity:.45; }
+.empty{ color:var(--ink-soft); font-size:13.5px; text-align:center; padding:18px 0; }
 
-.expense{ display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--paper-line); font-size:14px; }
-.expense:last-child{ border-bottom:none; }
-.expense .meta{ color:var(--ink-soft); font-size:12px; }
-.expense .amt{ font-family:'IBM Plex Mono', monospace; font-weight:600; direction:ltr; }
-.expense .del{ background:none; border:none; color:var(--ink-soft); font-size:16px; cursor:pointer; padding:2px 6px; }
-.empty{ color:var(--ink-soft); font-size:13.5px; text-align:center; padding:10px 0; }
+/* week cards */
+.weeks-scroll{ display:flex; gap:10px; overflow-x:auto; padding:2px 2px 8px; margin:0 -16px; padding-inline:16px; scrollbar-width:none; }
+.weeks-scroll::-webkit-scrollbar{ display:none; }
+.wk{ flex:0 0 138px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:12px; }
+.wk.cur{ border-color:var(--mint); background:linear-gradient(180deg, var(--mint-soft), var(--card)); }
+.wk.pend{ opacity:.6; }
+.wk .wd{ font-size:11.5px; color:var(--ink-soft); }
+.wk .wb{ font-family:'IBM Plex Mono', monospace; font-size:19px; font-weight:600; margin:5px 0 8px; direction:ltr; text-align:right; }
+.wk .ws{ font-size:11px; color:var(--ink-soft); margin-top:6px; }
+
+/* obligations */
+.card-h{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.card-h h2{ margin:0 0 10px; }
+.inl{ margin:0 !important; width:auto !important; font-size:12.5px !important; color:var(--mint) !important; text-decoration:none !important; }
+.bill-top{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px; }
+.bill-top .k{ font-size:11.5px; color:var(--ink-soft); }
+.bill-top .v{ font-family:'IBM Plex Mono', monospace; font-size:24px; font-weight:600; direction:ltr; }
+.bill-top .v.neg{ color:var(--red); }
+.bill-top .k2{ font-size:11.5px; color:var(--ink-soft); }
 
 .linklike{ display:block; text-align:center; margin-top:6px; font-size:12.5px; color:var(--ink-soft); text-decoration:underline; cursor:pointer; background:none; border:none; font-family:inherit; }
+.foot{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:22px; }
+.foot button{ background:var(--card); border:1px solid var(--line); color:var(--ink-soft); font-family:inherit; font-size:12.5px; padding:8px 13px; border-radius:20px; cursor:pointer; }
 
 canvas{ width:100%; height:140px; display:block; }
-.legend{ display:flex; gap:14px; justify-content:center; font-size:11.5px; color:var(--ink-soft); margin-top:6px; }
+.legend{ display:flex; gap:14px; justify-content:center; font-size:11.5px; color:var(--ink-soft); margin-top:8px; flex-wrap:wrap; }
 .legend span{ display:inline-flex; align-items:center; gap:5px; }
-.legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+.legend i{ width:9px; height:9px; border-radius:3px; display:inline-block; }
+
+.stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+.stat{ border-top:1px solid var(--line); padding-top:8px; }
+.stat .k{ font-size:11.5px; color:var(--ink-soft); margin-bottom:3px; }
+.stat .v{ font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; direction:ltr; text-align:right; }
+
+/* FAB + sheet */
+.fab{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); width:64px; height:64px; border-radius:50%; border:none; background:var(--mint); color:#06281B; font-size:34px; font-weight:500; line-height:1; cursor:pointer; box-shadow:0 8px 28px rgba(70,224,160,.4), 0 2px 8px rgba(0,0,0,.5); z-index:20; }
+.fab:active{ transform:translateX(-50%) scale(.94); }
+.sheet-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:30; animation:fade .2s ease; }
+.sheet{ position:fixed; left:0; right:0; bottom:0; max-width:480px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-bottom:none; border-radius:26px 26px 0 0; padding:10px 18px 26px; z-index:40; max-height:88vh; overflow-y:auto; animation:rise .25s cubic-bezier(.2,.8,.2,1); }
+.sheet .grab{ width:42px; height:4px; background:var(--line); border-radius:3px; margin:0 auto 14px; }
+.sheet .amt-in{ font-size:34px !important; text-align:center !important; padding:14px !important; border-radius:18px !important; }
+.chips{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 12px; }
+.chips button{ background:var(--card2); border:1px solid var(--line); color:var(--ink); font-family:inherit; font-size:13.5px; padding:7px 14px; border-radius:18px; cursor:pointer; }
+.chips button:active{ background:var(--mint-soft); border-color:var(--mint); }
+.sheet .hint{ font-size:12px; color:var(--ink-soft); margin:0 0 12px; line-height:1.6; }
+@keyframes rise{ from{ transform:translateY(40px); opacity:0; } to{ transform:none; opacity:1; } }
+@keyframes fade{ from{ opacity:0; } to{ opacity:1; } }
 
 .loading{ text-align:center; color:var(--ink-soft); padding:40px 0; font-size:14px; }
 </style>
@@ -125,7 +181,7 @@ canvas{ width:100%; height:140px; display:block; }
 
 <script>
 const STORAGE_KEY = 'budget-state-v2';
-const APP_VERSION = 'v3.2 — 2026/10/09';
+const APP_VERSION = 'v4.0 — 2026/10/31';
 const SUPABASE_URL = 'https://cjczauxbziygxjmhptag.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_oi_tSJ30GHNTJaUJxEUQkA_dEt1MEf2';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -139,6 +195,9 @@ let showAddExpense = false;
 let showExpenseList = false;
 let showOtherAdd = false;
 let showOtherList = false;
+let sheetOpen = false;
+let sheetTab = 'spend';
+let animate = true;
 
 // بياناتك مخزنة على حسابك بقاعدة بيانات Supabase، محمية بحيث ولا حدا غيرك يوصلها.
 
@@ -180,6 +239,7 @@ function getPeriodEnd(startStr, type, salaryDay){
   const next = nextSalaryDateAfter(startStr, salaryDay||1);
   return toStr(new Date(dateFromStr(next).getTime() - 86400000));
 }
+function periodEndOf(st){ return st.periodEnd || getPeriodEnd(st.periodStart, st.periodType, st.salaryDay); }
 function buildWeeks(startStr, endStr){
   // أسابيع مربوطة بيوم ثابت: كل أسبوع يبلش السبت وينتهي الجمعة (متل ما يلي بالميزانية).
   // أول قطعة بالفترة ممكن تكون أقصر من 7 أيام لو الفترة ما بلشت يوم سبت بالظبط.
@@ -194,6 +254,7 @@ function buildWeeks(startStr, endStr){
   }
   return weeks;
 }
+function esc(t){ return String(t).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function dateLabel(dateStr){
   const today = todayStr();
   const yest = toStr(new Date(dateFromStr(today).getTime() - 86400000));
@@ -263,11 +324,12 @@ function importBackup(file){
   reader.readAsText(file);
 }
 
-function setupBudget(type, amount, salaryDay, generalAmount, startDate){
+function setupBudget(type, amount, salaryDay, generalAmount, startDate, endDate){
   const sDay = salaryDay || 1;
   const sd = startDate || todayStr();
   const start = type==='monthly' ? monthlyPeriodStartContaining(sd, sDay) : sd;
-  state = { periodType:type, budgetAmount:amount, periodStart:start, salaryDay:sDay, trackingStart:sd, expenses:[], savings:0, history:[], generalBudgetAmount:(generalAmount||0), otherExpenses:[] };
+  state = { periodType:type, budgetAmount:amount, periodStart:start, salaryDay:sDay, trackingStart:sd, expenses:[], savings:0, history:[], generalBudgetAmount:(generalAmount||0), otherExpenses:[], periodEnd:null };
+  if(endDate && endDate !== getPeriodEnd(start, type, sDay)) state.periodEnd = endDate;
   saveState(); render();
 }
 function addExpense(amount, note, date){
@@ -301,7 +363,7 @@ function deleteExpense(id){
 
 function computeCurrentPeriodInfo(){
   const today = todayStr();
-  const periodEnd = getPeriodEnd(state.periodStart, state.periodType, state.salaryDay);
+  const periodEnd = periodEndOf(state);
   const allocStart = state.trackingStart || state.periodStart; // من هون بتبلش الحصص الفعلية
   const daysInPeriod = daysBetweenInclusive(allocStart, periodEnd);
   const notStarted = today < allocStart;
@@ -349,7 +411,7 @@ function computeCurrentPeriodInfo(){
 function startNewPeriodFlow(){ ui = { mode:'newPeriod' }; render(); }
 function cancelFlow(){ ui = { mode:'dashboard' }; render(); }
 
-function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount, startDate){
+function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount, startDate, endDate){
   const sd = startDate || todayStr();
   const info = computeCurrentPeriodInfo();
   const diff = state.budgetAmount - info.totalSpent;
@@ -361,6 +423,8 @@ function confirmNewPeriod(newAmount, repayAmount, newGeneralAmount, startDate){
   }
   state.periodStart = state.periodType==='monthly' ? monthlyPeriodStartContaining(sd, state.salaryDay||1) : sd;
   state.trackingStart = sd;
+  state.periodEnd = null;
+  if(endDate && endDate !== getPeriodEnd(state.periodStart, state.periodType, state.salaryDay||1)) state.periodEnd = endDate;
   state.expenses = [];
   state.otherExpenses = [];
   state.budgetAmount = newAmount;
@@ -385,11 +449,11 @@ function drawHistoryChart(canvas, history){
     const gx = padL + idx*groupW + groupW/2;
     const budgetH = (it.amount/max) * (h-padB-padT);
     const spentH = (it.spent/max) * (h-padB-padT);
-    ctx.fillStyle = '#CFC9B8';
+    ctx.fillStyle = '#2A3A34';
     ctx.fillRect(gx - barW - 2, h-padB-budgetH, barW, budgetH);
-    ctx.fillStyle = it.spent > it.amount ? '#B5442E' : '#2F6F4E';
+    ctx.fillStyle = it.spent > it.amount ? '#F2715E' : '#46E0A0';
     ctx.fillRect(gx + 2, h-padB-spentH, barW, spentH);
-    ctx.fillStyle = '#5B6459';
+    ctx.fillStyle = '#8CA197';
     ctx.font = '10px IBM Plex Sans Arabic, sans-serif';
     ctx.textAlign = 'center';
     const label = it.start.slice(5).replace('-','/');
@@ -457,6 +521,7 @@ function render(){
         <div class="seg"><button id="segWeekly" class="active">أسبوعي</button><button id="segMonthly">شهري</button></div>
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="setupAmount" placeholder="مثلاً 300" min="0" step="0.01"></div>
         <div class="field"><label>تبلش الحسبة من</label><input type="date" id="setupStart" value="${todayStr()}" min="${todayStr()}"></div>
+        <div class="field"><label>تنتهي بتاريخ (اختياري — فاضي = نهاية الشهر أو الأسبوع)</label><input type="date" id="setupEnd"></div>
         <button class="primary" id="setupBtn">حفظ</button>
       </div>
       <div class="card">
@@ -477,7 +542,9 @@ function render(){
       const genVal = parseFloat(document.getElementById('setupGeneralAmount').value) || 0;
       const sStart = document.getElementById('setupStart').value || todayStr();
       if(sStart < todayStr()){alert('تاريخ البداية لازم يكون اليوم أو بعده');return;}
-      setupBudget(type,val,1,genVal,sStart);
+      const sEnd = document.getElementById('setupEnd').value;
+      if(sEnd && sEnd < sStart){alert('تاريخ الانتهاء لازم يكون بعد تاريخ البداية');return;}
+      setupBudget(type,val,1,genVal,sStart,sEnd||null);
     };
     return;
   }
@@ -505,12 +572,13 @@ function render(){
       ` : ''}
       <div class="card">
         <h2>الفترة الجديدة</h2>
-        <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="npAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
-        <div class="field"><label>تبلش الحسبة من</label><input type="date" id="npStart" value="${todayStr()}" min="${todayStr()}"></div>
+        <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="npAmount" value="${ui.prefillAmount!==undefined ? ui.prefillAmount : state.budgetAmount}" min="0" step="0.01"></div>
+        <div class="field"><label>تبلش الحسبة من</label><input type="date" id="npStart" value="${ui.prefillStart || todayStr()}" min="${todayStr()}"></div>
+        <div class="field"><label>تنتهي بتاريخ (اختياري — فاضي = نهاية الشهر أو الأسبوع)</label><input type="date" id="npEnd" value="${ui.prefillEnd || ''}"></div>
         ${projectedSavings<0 ? `
         <div class="field"><label>قديش بدك تسدد من هالفترة؟ (اختياري)</label><input type="number" id="npRepay" placeholder="0" min="0" step="0.01"></div>
         ` : ''}
-        <div class="field"><label>ميزانية الالتزامات (اختياري)</label><input type="number" id="npGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
+        <div class="field"><label>ميزانية الالتزامات (اختياري)</label><input type="number" id="npGeneral" value="${ui.prefillGeneral!==undefined ? ui.prefillGeneral : (state.generalBudgetAmount||0)}" min="0" step="0.01"></div>
         <button class="primary" id="npConfirm">تأكيد وبدء الفترة</button>
         <button class="secondary" id="npCancel">رجوع</button>
       </div>`;
@@ -523,7 +591,9 @@ function render(){
       const genAmt = parseFloat(document.getElementById('npGeneral').value) || 0;
       const npStart = document.getElementById('npStart').value || todayStr();
       if(npStart < todayStr()){ alert('تاريخ البداية لازم يكون اليوم أو بعده'); return; }
-      confirmNewPeriod(amt, repay, genAmt, npStart);
+      const npEnd = document.getElementById('npEnd').value;
+      if(npEnd && npEnd < npStart){ alert('تاريخ الانتهاء لازم يكون بعد تاريخ البداية'); return; }
+      confirmNewPeriod(amt, repay, genAmt, npStart, npEnd||null);
     };
     document.getElementById('npCancel').onclick = cancelFlow;
     return;
@@ -538,11 +608,13 @@ function render(){
         <div class="field"><label>المبلغ الكلي (د.أ)</label><input type="number" id="ebAmount" value="${state.budgetAmount}" min="0" step="0.01"></div>
         <div class="field"><label>ميزانية الالتزامات (اختياري)</label><input type="number" id="ebGeneral" value="${state.generalBudgetAmount||0}" min="0" step="0.01"></div>
         <div class="field"><label>تبلش الحسبة من</label><input type="date" id="ebStart" value="${todayStr()}" min="${todayStr()}"></div>
-        <div style="font-size:12px;color:var(--ink-soft);margin:-4px 0 12px;">الميزانية بتتوزع على الأيام من هالتاريخ لآخر الفترة، والرصيد المدور بيبدأ من صفر. مصاريفك المسجلة ما بتنحذف.</div>
+        <div class="field"><label>تنتهي بتاريخ</label><input type="date" id="ebEnd" value="${periodEndOf(state)}" min="${todayStr()}"></div>
+        <div style="font-size:12px;color:var(--ink-soft);margin:-4px 0 12px;">الميزانية بتتوزع على الأيام من تاريخ البداية لتاريخ الانتهاء، والرصيد المدور بيبدأ من صفر. مصاريفك المسجلة ما بتنحذف.</div>
         <button class="primary" id="ebSave">حفظ</button>
         <button class="secondary" id="ebCancel">رجوع</button>
       </div>`;
     let type = state.periodType;
+    const initialEnd = periodEndOf(state);
     document.getElementById('segW').onclick=()=>{type='weekly';document.getElementById('segW').classList.add('active');document.getElementById('segM').classList.remove('active');};
     document.getElementById('segM').onclick=()=>{type='monthly';document.getElementById('segM').classList.add('active');document.getElementById('segW').classList.remove('active');};
     document.getElementById('ebSave').onclick=()=>{
@@ -550,17 +622,19 @@ function render(){
       if(!amt||amt<=0){alert('مبلغ غير صحيح');return;}
       state.salaryDay = 1;
       const eStart = document.getElementById('ebStart').value || todayStr();
+      const eEnd = document.getElementById('ebEnd').value;
       if(eStart < todayStr()){ alert('تاريخ البداية لازم يكون اليوم أو بعده'); return; }
-      if(type==='monthly' && state.periodType!=='monthly'){
-        state.periodStart = monthlyPeriodStartContaining(eStart, 1);
-        state.trackingStart = eStart;
-      } else if(type==='weekly' && state.periodType!=='weekly'){
-        state.periodStart = eStart;
-        state.trackingStart = eStart;
-      } else {
-        if(eStart > getPeriodEnd(state.periodStart, state.periodType, 1)){ alert('تاريخ البداية لازم يكون ضمن الفترة الحالية (لحد ' + getPeriodEnd(state.periodStart, state.periodType, 1) + ')'); return; }
-        state.trackingStart = eStart;
-      }
+      const typeChanged = type !== state.periodType;
+      const endEdited = eEnd !== initialEnd;
+      let newPeriodStart = state.periodStart;
+      if(type==='monthly' && typeChanged) newPeriodStart = monthlyPeriodStartContaining(eStart, 1);
+      else if(type==='weekly' && typeChanged) newPeriodStart = eStart;
+      const natEnd = getPeriodEnd(newPeriodStart, type, 1);
+      const endFinal = (typeChanged && !endEdited) ? natEnd : (eEnd || natEnd);
+      if(endFinal < eStart){ alert('تاريخ الانتهاء لازم يكون بعد تاريخ البداية أو نفسه، غيّر تاريخ الانتهاء'); return; }
+      state.periodStart = newPeriodStart;
+      state.trackingStart = eStart;
+      state.periodEnd = (endFinal !== natEnd) ? endFinal : null;
       state.budgetAmount=amt; state.periodType=type;
       state.generalBudgetAmount = parseFloat(document.getElementById('ebGeneral').value) || 0;
       ui={mode:'dashboard'}; saveState(); render();
@@ -574,173 +648,205 @@ function render(){
   const rolled = info.rolledBalance;
   const rolledCls = rolled>0.005 ? 'pos' : (rolled<-0.005 ? 'neg' : '');
   const isMonthly = state.periodType==='monthly';
+  const C = 2*Math.PI*100;
 
   let savingsBanner = '';
   if(state.savings > 0.001){
-    savingsBanner = `<div class="banner good">💰 السيفنج: ${fmt(state.savings)} د.أ</div>`;
+    savingsBanner = `<div class="banner good">السيفنج: ${fmt(state.savings)} د.أ</div>`;
   } else if(state.savings < -0.001){
-    savingsBanner = `<div class="banner bad">⚠️ عليك دين للسيفنج: ${fmt(Math.abs(state.savings))} د.أ — بينخصم تلقائي من أي فائض جاي</div>`;
+    savingsBanner = `<div class="banner bad">عليك دين للسيفنج: ${fmt(Math.abs(state.savings))} د.أ</div>`;
   }
 
+  // --- الدائرة الرئيسية ---
   let heroHtml;
   if(info.periodOver){
-    heroHtml = `<div class="banner info">انتهت الفترة الحالية. اضغط "بدء فترة جديدة" تحت.</div>
-      <div class="hero"><div class="label">إجمالي الصرف اليومي بهذه الفترة</div><div class="amount">${fmt(info.totalSpent)}<span class="unit">د.أ</span></div></div>`;
-  } else {
     heroHtml = `
-      <div class="hero">
-        <div class="label">${info.notStarted ? 'الحصة اليومية — بتبلش من ' + info.allocStart : 'المتبقي من حصتك اليوم'}</div>
-        <div class="amount ${leftToday<0?'over':''}">${fmt(leftToday)}<span class="unit">د.أ</span></div>
-        <div class="sub">الحصة اليومية الثابتة: ${fmt(info.dailyFixed)} د.أ</div>
-        <div class="sub">صرفت اليوم: ${fmt(info.spentToday)} · أيام متبقية: ${info.daysRemainingPeriod} من ${info.daysInPeriod}</div>
-      </div>
-      <div class="stats">
-        ${isMonthly ? `<div class="stat"><div class="k">متبقي من ميزانية الأسبوع</div><div class="v ${info.weeklyRemaining<0?'neg':''}">${fmt(info.weeklyRemaining)}</div></div>` : ''}
-        <div class="stat" ${isMonthly?'':'style="grid-column:1/-1;"'}><div class="k">${isMonthly?'متبقي من ميزانية الشهر':'متبقي من ميزانية الأسبوع'}</div><div class="v ${info.remainingBudget<0?'neg':''}">${fmt(info.remainingBudget)}</div></div>
-        <div class="stat" style="grid-column:1/-1;"><div class="k">الرصيد المدور (فرق الأيام اللي مضت عن الحصة الثابتة)</div><div class="v ${rolledCls}">${rolled>0.005?'+':''}${fmt(rolled)}</div></div>
-      </div>
-      <div class="pace">
-        <div class="row"><span>الوقت يلي مضى</span><span>${Math.round(info.pctTime)}%</span></div>
-        <div class="bar time"><div style="width:${info.pctTime}%"></div></div>
-        <div class="row"><span>اللي صرفته من الميزانية</span><span>${Math.round(info.pctSpent)}%</span></div>
-        <div class="bar spent ${info.pctSpent>info.pctTime?'over':''}"><div style="width:${Math.min(100,info.pctSpent)}%"></div></div>
+      <div class="card hero-card hero-sum">
+        <div class="banner info">انتهت الفترة الحالية</div>
+        <div class="k">إجمالي الصرف اليومي بهذه الفترة</div>
+        <div class="big">${fmt(info.totalSpent)}<span class="unit">د.أ</span></div>
+        <button class="primary" id="resetBtn2">بدء فترة جديدة</button>
+      </div>`;
+  } else {
+    const frac = info.dailyFixed>0 ? Math.max(0, Math.min(1, leftToday/info.dailyFixed)) : 0;
+    const over = leftToday < -0.005;
+    const tone = over ? 'red' : (frac>0.5 ? 'mint' : (frac>0.2 ? 'amber' : 'red'));
+    const target = over ? C : frac*C;
+    const status = info.notStarted
+      ? ('الحسبة بتبلش من ' + info.allocStart)
+      : (over ? ('تجاوزت حصتك اليوم بـ ' + fmt(-leftToday) + ' د.أ')
+              : (info.spentToday<0.005 ? 'ما صرفت شي لهلأ، حصتك كاملة' : ('صرفت ' + fmt(info.spentToday) + ' د.أ من حصتك اليوم')));
+    heroHtml = `
+      <div class="card hero-card">
+        <div class="ring ${tone}">
+          <svg viewBox="0 0 240 240"><circle class="trk" cx="120" cy="120" r="100"/><circle class="arc" id="ringArc" cx="120" cy="120" r="100" data-target="${target}" style="stroke-dasharray:${animate?0:target} ${C}"/></svg>
+          <div class="ring-c">
+            <div class="rl">${info.notStarted ? 'الحصة اليومية' : (over ? 'تجاوز' : 'المتبقي اليوم')}</div>
+            <div class="rv" id="ringVal" data-v="${over ? -leftToday : leftToday}">${animate ? '0.00' : fmt(over ? -leftToday : leftToday)}</div>
+            <div class="ru">د.أ</div>
+          </div>
+        </div>
+        <div class="ring-s">${status}</div>
+        <div class="ring-f">الحصة اليومية الثابتة <b>${fmt(info.dailyFixed)}</b> د.أ · باقي <b>${info.daysRemainingPeriod}</b> يوم</div>
       </div>`;
   }
 
+  // --- بطاقات الأرقام ---
+  const cards = [];
+  if(isMonthly && info.weeklyRemaining!==null){
+    cards.push(`<div class="mini"><div class="k">باقي من الأسبوع</div><div class="v ${info.weeklyRemaining<0?'neg':''}">${fmt(info.weeklyRemaining)}</div></div>`);
+  }
+  cards.push(`<div class="mini"><div class="k">${isMonthly?'باقي من الشهر':'باقي من الأسبوع'}</div><div class="v ${info.remainingBudget<0?'neg':''}">${fmt(info.remainingBudget)}</div></div>`);
+  cards.push(`<div class="mini"><div class="k">الرصيد المدور</div><div class="v ${rolledCls}">${rolled>0.005?'+':''}${fmt(rolled)}</div><div class="h">فرق الأيام اللي مضت</div></div>`);
+  const miniHtml = info.periodOver ? '' : `<div class="mini-grid" style="grid-template-columns:repeat(${cards.length},1fr);">${cards.join('')}</div>`;
+
+  const paceHtml = info.periodOver ? '' : `
+    <div class="pace">
+      <div class="row"><span>الوقت اللي مضى</span><span>${Math.round(info.pctTime)}%</span></div>
+      <div class="bar time"><div style="width:${info.pctTime}%"></div></div>
+      <div class="row"><span>اللي صرفته من الميزانية</span><span>${Math.round(info.pctSpent)}%</span></div>
+      <div class="bar ${info.pctSpent>info.pctTime?'over':''}"><div style="width:${Math.min(100,info.pctSpent)}%"></div></div>
+    </div>`;
+
+  // --- آخر الحركات ---
+  const allRows = state.expenses.slice().sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const rows = showExpenseList ? allRows : allRows.slice(0,5);
+  const feedHtml = rows.length ? rows.map(e=>`
+    <div class="row ${e.date<info.allocStart?'old':''}">
+      <div class="rt"><div class="rn">${e.note?esc(e.note):'بدون ملاحظة'}</div><div class="rd">${dateLabel(e.date)}${e.date<info.allocStart?' · قبل بداية الحسبة':''}</div></div>
+      <div class="ra">${fmt(e.amount)}</div>
+      <button class="del" data-id="${e.id}">✕</button>
+    </div>`).join('') : `<div class="empty">لسا ما سجلت صرف يومي، دوس + وابلش</div>`;
+  const feedToggle = allRows.length>5 ? `<button id="toggleExpenseList">${showExpenseList?'عرض أقل':'عرض الكل ('+allRows.length+')'}</button>` : '';
+
+  // --- كروت الأسابيع ---
+  let weeksHtml = '';
+  if(isMonthly && info.weeksTable.length){
+    weeksHtml = `<div class="sect"><span>الأسابيع</span></div><div class="weeks-scroll">` + info.weeksTable.map((w,i)=>{
+      const cur = i===info.currentWeekIndex;
+      const pct = (w.pending || w.budget<=0) ? 0 : Math.min(100,(w.spent/w.budget)*100);
+      const overW = !w.pending && w.spent>w.budget+0.005;
+      return `<div class="wk ${cur?'cur':''} ${w.pending?'pend':''}">
+        <div class="wd"><bdi dir="ltr">${w.start.slice(5).replace('-','/')} → ${w.end.slice(5).replace('-','/')}</bdi>${cur?' · الحالي':''}</div>
+        <div class="wb">${fmt(w.budget)}</div>
+        <div class="bar"><div class="${overW?'over':''}" style="width:${pct}%"></div></div>
+        <div class="ws">${w.pending?'لسا':('صرفت '+fmt(w.spent))}</div>
+      </div>`;
+    }).join('') + `</div>`;
+  }
+
+  // --- الالتزامات ---
   const otherSpent = (state.otherExpenses||[]).reduce((s,e)=>s+e.amount,0);
   const generalRemaining = (state.generalBudgetAmount||0) - otherSpent;
-
-  let weeksTableHtml = '';
-  if(state.periodType==='monthly' && info.weeksTable.length){
-    weeksTableHtml = `
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h2 style="margin:0;">الأسابيع بهالشهر</h2>
-          <button class="linklike" id="toggleWeeks" style="margin:0;width:auto;">${showWeeks?'إخفاء':'إظهار'}</button>
-        </div>
-        ${showWeeks ? `
-        <table class="weeks" style="margin-top:10px;">
-          <tr><th>الأسبوع</th><th>الحصة</th><th>الصرف</th><th>الفرق</th></tr>
-          ${info.weeksTable.map((w,i)=> w.pending ? `
-            <tr><td class="name">${w.start.slice(5)} – ${w.end.slice(5)}</td><td>${fmt(w.budget)}</td><td>—</td><td>—</td></tr>
-          ` : `
-            <tr class="${i===info.currentWeekIndex?'current':''}">
-              <td class="name">${w.start.slice(5)} – ${w.end.slice(5)}${i===info.currentWeekIndex?' (الحالي)':''}</td>
-              <td>${fmt(w.budget)}</td><td>${fmt(w.spent)}</td>
-              <td class="${w.diff<0?'neg':''}">${w.diff>=0?'+':''}${fmt(w.diff)}</td>
-            </tr>
-          `).join('')}
-        </table>` : ''}
-      </div>`;
-  }
-
-  const expensesByDate = {};
-  state.expenses.forEach(e => { (expensesByDate[e.date] = expensesByDate[e.date] || []).push(e); });
-  const sortedDates = Object.keys(expensesByDate).sort().reverse();
-  const expensesHtml = sortedDates.length ? sortedDates.map(d => `
-    <div style="margin-bottom:10px;">
-      <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:2px;">${dateLabel(d)} <span style="font-weight:400;">(${d})</span></div>
-      ${expensesByDate[d].slice().reverse().map(e=>`
-        <div class="expense">
-          <div>${e.note?e.note:'بدون ملاحظة'}</div>
-          <div style="display:flex;align-items:center;gap:8px;"><div class="amt">${fmt(e.amount)}</div><button class="del" data-id="${e.id}">✕</button></div>
-        </div>`).join('')}
-    </div>`).join('') : `<div class="empty">لسا ما سجلت صرف يومي بهذه الفترة</div>`;
-  const otherByDate = {};
-  (state.otherExpenses||[]).forEach(e => { (otherByDate[e.date] = otherByDate[e.date] || []).push(e); });
-  const otherSortedDates = Object.keys(otherByDate).sort().reverse();
-  const otherExpensesHtml = otherSortedDates.length ? otherSortedDates.map(d => `
-    <div style="margin-bottom:10px;">
-      <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:2px;">${dateLabel(d)} <span style="font-weight:400;">(${d})</span></div>
-      ${otherByDate[d].slice().reverse().map(e=>`
-        <div class="expense">
-          <div>${e.note?e.note:'بدون ملاحظة'}</div>
-          <div style="display:flex;align-items:center;gap:8px;"><div class="amt">${fmt(e.amount)}</div><button class="delOther" data-id="${e.id}">✕</button></div>
-        </div>`).join('')}
+  const otherByRows = (state.otherExpenses||[]).slice().sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const otherRowsHtml = otherByRows.length ? otherByRows.map(e=>`
+    <div class="row">
+      <div class="rt"><div class="rn">${e.note?esc(e.note):'بدون ملاحظة'}</div><div class="rd">${dateLabel(e.date)}</div></div>
+      <div class="ra">${fmt(e.amount)}</div>
+      <button class="delOther" data-id="${e.id}" style="background:none;border:none;color:#5d7469;font-size:15px;cursor:pointer;padding:4px 6px;">✕</button>
     </div>`).join('') : `<div class="empty">لسا ما سجلت التزامات</div>`;
-
   let otherBudgetHtml = '';
   if(state.generalBudgetAmount>0 || otherSpent>0){
+    const bp = state.generalBudgetAmount>0 ? Math.min(100,(otherSpent/state.generalBudgetAmount)*100) : 100;
     otherBudgetHtml = `
+      <div class="sect"><span>الالتزامات والفواتير</span></div>
       <div class="card">
-        <h2>ميزانية الالتزامات <small>(المصاريف الأخرى — ما بتأثر على الحصة اليومية)</small></h2>
-        <div class="stats">
-          <div class="stat"><div class="k">الميزانية</div><div class="v">${fmt(state.generalBudgetAmount||0)}</div></div>
-          <div class="stat"><div class="k">صرفت منها</div><div class="v">${fmt(otherSpent)}</div></div>
-          <div class="stat" style="grid-column:1/-1;"><div class="k">المتبقي</div><div class="v ${generalRemaining<0?'neg':''}">${fmt(generalRemaining)}</div></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
-          <h2 style="margin:0;">تسجيل التزام أو فاتورة</h2>
-          <button class="linklike" id="toggleOtherAdd" style="margin:0;width:auto;">${showOtherAdd?'إخفاء':'إظهار'}</button>
-        </div>
-        ${showOtherAdd ? `
-        <div class="addrow" style="margin-top:10px;"><input type="number" id="otherAmount" placeholder="المبلغ" min="0" step="0.01"><button class="primary" id="otherAddBtn">تسجيل</button></div>
-        <div class="field" style="margin-top:8px;"><input type="text" id="otherNote" placeholder="ملاحظة (مثلاً: فاتورة كهرباء)"></div>
-        ` : ''}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
-          <h2 style="margin:0;">الالتزامات المسجلة</h2>
-          <button class="linklike" id="toggleOtherList" style="margin:0;width:auto;">${showOtherList?'إخفاء':'إظهار'}</button>
-        </div>
-        ${showOtherList ? `<div style="margin-top:10px;">${otherExpensesHtml}</div>` : ''}
+        <div class="card-h"><h2>مصاريف أخرى <small>(ما بتأثر على الحصة اليومية)</small></h2><button class="linklike inl" id="toggleOtherList">${showOtherList?'إخفاء السجل':'السجل'}</button></div>
+        <div class="bill-top"><div><div class="k">المتبقي</div><div class="v ${generalRemaining<0?'neg':''}">${fmt(generalRemaining)}</div></div><div class="k2">من ${fmt(state.generalBudgetAmount||0)} · صرفت ${fmt(otherSpent)}</div></div>
+        <div class="bar"><div class="${generalRemaining<0?'over':''}" style="width:${bp}%"></div></div>
+        ${showOtherList ? `<div style="margin-top:6px;">${otherRowsHtml}</div>` : ''}
       </div>`;
   }
 
   let historyHtml = '';
   if(state.history.length){
     historyHtml = `
+      <div class="sect"><span>مقارنة الفترات السابقة</span></div>
       <div class="card">
-        <h2>مقارنة الفترات السابقة</h2>
         <canvas id="historyChart"></canvas>
-        <div class="legend"><span><i style="background:#CFC9B8"></i>الميزانية</span><span><i style="background:#2F6F4E"></i>الصرف (ضمن الحد)</span><span><i style="background:#B5442E"></i>الصرف (تجاوز)</span></div>
+        <div class="legend"><span><i style="background:#2A3A34"></i>الميزانية</span><span><i style="background:#46E0A0"></i>الصرف (ضمن الحد)</span><span><i style="background:#F2715E"></i>الصرف (تجاوز)</span></div>
       </div>`;
   }
 
+  // --- نافذة الإضافة السريعة ---
+  let sheetHtml = '';
+  if(sheetOpen && !info.periodOver){
+    const dateVal = info.notStarted ? info.allocStart : info.today;
+    let body = '';
+    if(sheetTab==='spend'){
+      body = `
+        <input type="number" inputmode="decimal" id="expAmount" class="amt-in" placeholder="0.00" min="0" step="0.01">
+        <div class="chips">${[1,2,3,5,10].map(n=>`<button data-q="${n}" data-target="expAmount">${n}</button>`).join('')}</div>
+        <div class="field"><input type="text" id="expNote" placeholder="على شو صرفت؟ (اختياري)"></div>
+        <div class="chips">${['قهوة','أكل','مواصلات','بنزين','سوبرماركت'].map(n=>`<button data-note="${n}">${n}</button>`).join('')}</div>
+        <div class="field"><label>التاريخ</label><input type="date" id="expDate" value="${dateVal}" min="${info.allocStart}" max="${info.periodEnd}"></div>
+        <button class="primary" id="expAddBtn">سجّل الصرف</button>`;
+    } else if(sheetTab==='daytotal'){
+      body = `
+        <p class="hint">لو عرفت قديش صرفت إجمالاً بيوم معين، حط المجموع هون. إذا في صرف مسجل قبل لنفس اليوم، بيحسب الفرق ويضيفه بس، بدون تكرار.</p>
+        <div class="field"><label>التاريخ</label><input type="date" id="dayTotalDate" value="${dateVal}" min="${info.allocStart}" max="${info.periodEnd}"></div>
+        <input type="number" inputmode="decimal" id="dayTotalAmount" class="amt-in" placeholder="مجموع اليوم" min="0" step="0.01">
+        <div style="height:12px"></div>
+        <button class="primary" id="dayTotalBtn">احسب وسجّل الفرق</button>`;
+    } else {
+      body = `
+        <p class="hint">للفواتير والالتزامات. بتنخصم من ميزانية الالتزامات بس، وما بتأثر على حصتك اليومية.</p>
+        <input type="number" inputmode="decimal" id="otherAmount" class="amt-in" placeholder="0.00" min="0" step="0.01">
+        <div style="height:12px"></div>
+        <div class="field"><input type="text" id="otherNote" placeholder="مثلاً: فاتورة كهرباء"></div>
+        <button class="primary" id="otherAddBtn">سجّل الالتزام</button>`;
+    }
+    sheetHtml = `
+      <div class="sheet-backdrop" id="sheetBackdrop"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="seg">
+          <button data-tab="spend" class="${sheetTab==='spend'?'active':''}">صرف يومي</button>
+          <button data-tab="daytotal" class="${sheetTab==='daytotal'?'active':''}">مجموع يوم</button>
+          <button data-tab="bill" class="${sheetTab==='bill'?'active':''}">التزام</button>
+        </div>
+        ${body}
+      </div>`;
+  }
+
+  const subtitle = (isMonthly?'شهرية':'أسبوعية') + ' · ' + fmt(state.budgetAmount) + ' د.أ · <bdi dir="ltr">' + info.allocStart.slice(5).replace('-','/') + ' → ' + info.periodEnd.slice(5).replace('-','/') + '</bdi>';
+
   app.innerHTML = `
-    <div class="masthead"><h1>دفتر المصروف</h1><p>ميزانية ${typeLabel} — ${fmt(state.budgetAmount)} د.أ</p><div class="ver">${APP_VERSION}</div></div>
+    <div class="masthead"><h1>دفتر المصروف</h1><p>ميزانية ${subtitle}</p><div class="ver">${APP_VERSION}</div></div>
     ${savingsBanner}
-    <div class="card">${heroHtml}</div>
-    ${weeksTableHtml}
-    ${!info.periodOver ? `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h2 style="margin:0;">تسجيل صرف يومي</h2>
-        <button class="linklike" id="toggleAddExpense" style="margin:0;width:auto;">${showAddExpense?'إخفاء':'إظهار'}</button>
-      </div>
-      ${showAddExpense ? `
-      <div class="addrow" style="margin-top:10px;"><input type="number" id="expAmount" placeholder="المبلغ" min="0" step="0.01"><button class="primary" id="expAddBtn">تسجيل</button></div>
-      <div class="field" style="margin-top:8px;"><input type="text" id="expNote" placeholder="ملاحظة (اختياري)"></div>
-      <div class="field">
-        <label>التاريخ</label>
-        <input type="date" id="expDate" value="${info.notStarted ? info.allocStart : info.today}" min="${info.allocStart}" max="${info.periodEnd}">
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">
-        <h2 style="margin:0;font-size:13px;">أو سجل مجموع يوم كامل دفعة وحدة</h2>
-        <button class="linklike" id="toggleDayTotal" style="margin:0;width:auto;">${showDayTotalForm?'إخفاء':'إظهار'}</button>
-      </div>
-      ${showDayTotalForm ? `
-        <div style="font-size:12px;color:var(--ink-soft);margin:8px 0 12px;">لو عرفت قديش صرفت إجمالاً بيوم معين، حط المجموع هون. إذا كان في مصاريف مسجلة قبل هيك لنفس اليوم، بيحسب الفرق ويضيفه بس، بدون تكرار.</div>
-        <div class="field"><label>التاريخ</label><input type="date" id="dayTotalDate" value="${info.notStarted ? info.allocStart : info.today}" min="${info.allocStart}" max="${info.periodEnd}"></div>
-        <div class="field"><label>مجموع الصرف لهذا اليوم (د.أ)</label><input type="number" id="dayTotalAmount" placeholder="مثلاً 25" min="0" step="0.01"></div>
-        <button class="primary" id="dayTotalBtn">احسب وسجل الفرق</button>
-      ` : ''}
-      ` : ''}
-    </div>` : ''}
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h2 style="margin:0;">سجل الصرف اليومي</h2>
-        <button class="linklike" id="toggleExpenseList" style="margin:0;width:auto;">${showExpenseList?'إخفاء':'إظهار'}</button>
-      </div>
-      ${showExpenseList ? `<div style="margin-top:10px;">${expensesHtml}</div>` : ''}
-    </div>
-    ${historyHtml}
+    ${heroHtml}
+    ${miniHtml}
+    ${paceHtml}
+    <div class="sect"><span>آخر الحركات</span>${feedToggle}</div>
+    <div class="feed">${feedHtml}</div>
+    ${weeksHtml}
     ${otherBudgetHtml}
-    <button class="linklike" id="resetBtn">بدء فترة جديدة</button>
-    <button class="linklike" id="editBudgetBtn">تعديل الميزانية الحالية</button>
-    <button class="linklike" id="exportBtn">تصدير نسخة احتياطية</button>
-    <button class="linklike" id="importBtn">استرجاع نسخة احتياطية</button>
+    ${historyHtml}
+    <div class="foot">
+      <button id="resetBtn">بدء فترة جديدة</button>
+      <button id="editBudgetBtn">تعديل الميزانية</button>
+      <button id="exportBtn">نسخة احتياطية</button>
+      <button id="importBtn">استرجاع</button>
+      <button id="signOutBtn">تسجيل خروج</button>
+    </div>
     <input type="file" id="importFile" accept="application/json" style="display:none;">
-    <button class="linklike" id="signOutBtn">تسجيل خروج</button>
+    ${(!info.periodOver && !sheetOpen) ? '<button class="fab" id="fab" aria-label="تسجيل صرف">+</button>' : ''}
+    ${sheetHtml}
   `;
+
+  // --- أحداث ---
+  const setSheet = (open, tab) => { sheetOpen = open; if(tab) sheetTab = tab; animate = false; render(); animate = true; };
+  const fab = document.getElementById('fab');
+  if(fab) fab.onclick = () => setSheet(true, 'spend');
+  const bd = document.getElementById('sheetBackdrop');
+  if(bd) bd.onclick = () => setSheet(false);
+  document.querySelectorAll('[data-tab]').forEach(b=>{ b.onclick = () => setSheet(true, b.dataset.tab); });
+  document.querySelectorAll('[data-q]').forEach(b=>{ b.onclick = () => { document.getElementById(b.dataset.target).value = b.dataset.q; }; });
+  document.querySelectorAll('[data-note]').forEach(b=>{ b.onclick = () => { document.getElementById('expNote').value = b.dataset.note; }; });
+  if(sheetOpen){
+    const first = document.getElementById(sheetTab==='spend' ? 'expAmount' : (sheetTab==='daytotal' ? 'dayTotalAmount' : 'otherAmount'));
+    if(first) setTimeout(()=>first.focus(), 60);
+  }
 
   const addBtn = document.getElementById('expAddBtn');
   if(addBtn){
@@ -750,36 +856,20 @@ function render(){
       const date = document.getElementById('expDate').value || todayStr();
       if(!amt||amt<=0){ alert('لازم تدخل مبلغ صحيح'); return; }
       if(date < info.allocStart || date > info.periodEnd){ alert('التاريخ لازم يكون من بداية الحسبة (' + info.allocStart + ') لآخر الفترة'); return; }
+      sheetOpen = false;
       addExpense(amt, note, date);
     };
   }
-  document.querySelectorAll('.del').forEach(btn=>{ btn.onclick=()=>deleteExpense(btn.dataset.id); });
-  document.querySelectorAll('.delOther').forEach(btn=>{ btn.onclick=()=>deleteOtherExpense(btn.dataset.id); });
-
   const otherAddBtn = document.getElementById('otherAddBtn');
   if(otherAddBtn){
     otherAddBtn.onclick = () => {
       const amt = parseFloat(document.getElementById('otherAmount').value);
       const note = document.getElementById('otherNote').value.trim();
       if(!amt||amt<=0){ alert('لازم تدخل مبلغ صحيح'); return; }
+      sheetOpen = false;
       addOtherExpense(amt, note, todayStr());
     };
   }
-
-  const toggleDT = document.getElementById('toggleDayTotal');
-  if(toggleDT){ toggleDT.onclick = () => { showDayTotalForm = !showDayTotalForm; render(); }; }
-  const toggleWeeksBtn = document.getElementById('toggleWeeks');
-  if(toggleWeeksBtn){ toggleWeeksBtn.onclick = () => { showWeeks = !showWeeks; render(); }; }
-  const toggleAddExpBtn = document.getElementById('toggleAddExpense');
-  if(toggleAddExpBtn){ toggleAddExpBtn.onclick = () => { showAddExpense = !showAddExpense; render(); }; }
-  const toggleExpListBtn = document.getElementById('toggleExpenseList');
-  if(toggleExpListBtn){ toggleExpListBtn.onclick = () => { showExpenseList = !showExpenseList; render(); }; }
-  const toggleOtherAddBtn = document.getElementById('toggleOtherAdd');
-  if(toggleOtherAddBtn){ toggleOtherAddBtn.onclick = () => { showOtherAdd = !showOtherAdd; render(); }; }
-  const toggleOtherListBtn = document.getElementById('toggleOtherList');
-  if(toggleOtherListBtn){ toggleOtherListBtn.onclick = () => { showOtherList = !showOtherList; render(); }; }
-  const signOutBtn = document.getElementById('signOutBtn');
-  if(signOutBtn){ signOutBtn.onclick = signOut; }
   const dayTotalBtn = document.getElementById('dayTotalBtn');
   if(dayTotalBtn){
     dayTotalBtn.onclick = () => {
@@ -787,14 +877,34 @@ function render(){
       const total = parseFloat(document.getElementById('dayTotalAmount').value);
       if(isNaN(total) || total < 0){ alert('لازم تدخل مبلغ صحيح'); return; }
       if(date < info.allocStart || date > info.periodEnd){ alert('التاريخ لازم يكون من بداية الحسبة (' + info.allocStart + ') لآخر الفترة'); return; }
+      sheetOpen = false;
       logDayTotal(date, total);
     };
   }
+  document.querySelectorAll('.del').forEach(btn=>{ btn.onclick=()=>deleteExpense(btn.dataset.id); });
+  document.querySelectorAll('.delOther').forEach(btn=>{ btn.onclick=()=>deleteOtherExpense(btn.dataset.id); });
+  const tel = document.getElementById('toggleExpenseList'); if(tel) tel.onclick = () => { showExpenseList = !showExpenseList; animate=false; render(); animate=true; };
+  const tol = document.getElementById('toggleOtherList'); if(tol) tol.onclick = () => { showOtherList = !showOtherList; animate=false; render(); animate=true; };
+  const rb2 = document.getElementById('resetBtn2'); if(rb2) rb2.onclick = startNewPeriodFlow;
   document.getElementById('resetBtn').onclick = startNewPeriodFlow;
   document.getElementById('editBudgetBtn').onclick = ()=>{ ui={mode:'editBudget'}; render(); };
   document.getElementById('exportBtn').onclick = exportBackup;
   document.getElementById('importBtn').onclick = ()=> document.getElementById('importFile').click();
   document.getElementById('importFile').onchange = (e)=>{ if(e.target.files[0]) importBackup(e.target.files[0]); };
+  document.getElementById('signOutBtn').onclick = signOut;
+
+  // --- حركة الدائرة والرقم ---
+  const arc = document.getElementById('ringArc');
+  if(arc && animate){
+    const tgt = arc.dataset.target;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ arc.style.strokeDasharray = tgt + ' ' + C; }));
+  }
+  const rv = document.getElementById('ringVal');
+  if(rv && animate){
+    const to = parseFloat(rv.dataset.v)||0; const t0 = performance.now();
+    const step = (t)=>{ const k = Math.min(1,(t-t0)/700); const e = 1-Math.pow(1-k,3); rv.textContent = fmt(to*e); if(k<1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
 
   const chartCanvas = document.getElementById('historyChart');
   if(chartCanvas) drawHistoryChart(chartCanvas, state.history);
